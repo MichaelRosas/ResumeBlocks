@@ -88,4 +88,12 @@ export const samplePresets: ResumePreset[] = [
     description: 'React & interface design',
     blockIds: ['education-uic', 'experience-internship', 'project-campus', 'skills-technical'],
   },
-]
+].map(({ blockIds, ...preset }) => ({
+  ...preset,
+  blocks: blockIds.flatMap((id) => {
+    const block = sampleBlocks.find((item) => item.id === id)
+    return block ? [{ ...block, bullets: [...block.bullets] }] : []
+  }),
+  profile: { ...sampleProfile },
+  compact: false,
+}))

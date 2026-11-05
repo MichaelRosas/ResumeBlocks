@@ -17,11 +17,16 @@ export interface ResumeProfile {
   website: string
 }
 
-export interface ResumePreset {
+export interface ResumeSnapshot {
+  blocks: ResumeBlock[]
+  profile: ResumeProfile
+  compact: boolean
+}
+
+export interface ResumePreset extends ResumeSnapshot {
   id: string
   name: string
   description: string
-  blockIds: string[]
 }
 
 export const blockLabels: Record<BlockType, string> = {

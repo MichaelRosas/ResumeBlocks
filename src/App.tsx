@@ -7,34 +7,64 @@ import { BlockLibrary } from './components/BlockLibrary'
 import { BuilderTools } from './components/BuilderTools'
 import { Icon } from './components/Icon'
 import { ProfileEditor } from './components/ProfileEditor'
+import { PresetEditor } from './components/PresetEditor'
+import { PresetSwitchDialog } from './components/PresetSwitchDialog'
 import { ResumePreview } from './components/ResumePreview'
 import { StorageNotice } from './components/StorageNotice'
 import { useWorkspace } from './state/useWorkspace'
 import type { ResumeBlock, ResumePreset, ResumeProfile } from './types'
 
-type Editor = { type: 'block'; block: ResumeBlock | null } | { type: 'profile' } | null
+type Editor = { type: 'block'; block: ResumeBlock | null } | { type: 'profile' }
+  | { type: 'preset'; preset: ResumePreset | null }
+  | { type: 'switch-preset'; target: ResumePreset; restore: boolean } | null
 
 export default function App() {
   const { state, dispatch, saveStatus, loadIssue, retrySave, replaceSavedWorkspace } = useWorkspace()
   const [announcement, setAnnouncement] = useState('')
   const [editor, setEditor] = useState<Editor>(null)
   const [activeDrag, setActiveDrag] = useState<{ block: ResumeBlock; fromResume: boolean } | null>(null)
-  const activePreset = state.presets.find((preset) => preset.id === state.presetId)!
+  const activePreset = state.presets.find((preset) => preset.id === state.presetId)
   const selectedBlocks = state.selectedIds.flatMap((id) => {
-    const block = state.blocks.find((item) => item.id === id)
+    const block = state.resumeBlocks.find((item) => item.id === id)
     return block ? [block] : []
   })
 
   function toggleBlock(id: string) {
-    const block = state.blocks.find((item) => item.id === id)
+    const block = state.resumeBlocks.find((item) => item.id === id) ?? state.blocks.find((item) => item.id === id)
     if (!block) return
     setAnnouncement(`${block.title} ${state.selectedIds.includes(id) ? 'removed from the resume. It is still in your library.' : 'added to the resume.'}`)
     dispatch({ type: 'toggleBlock', id })
   }
 
   function selectPreset(preset: ResumePreset) {
+    if (preset.id === state.presetId) return
+    if (state.modified) {
+      setEditor({ type: 'switch-preset', target: preset, restore: false })
+      return
+    }
     dispatch({ type: 'selectPreset', id: preset.id })
-    setAnnouncement(`${preset.name} block selection loaded.`)
+    setAnnouncement(`${preset.name} opened.`)
+  }
+
+  function savePreset(name: string, description: string) {
+    if (editor?.type !== 'preset') return
+    if (editor.preset) dispatch({ type: 'renamePreset', id: editor.preset.id, name, description })
+    else dispatch({ type: 'createPreset', id: crypto.randomUUID(), name, description })
+    setEditor(null)
+    setAnnouncement(`${name} ${editor.preset ? 'renamed' : 'saved as a separate preset'}.`)
+  }
+
+  function updatePreset() {
+    dispatch({ type: 'updatePreset' })
+    setAnnouncement(`${activePreset?.name ?? 'Preset'} updated with the current resume.`)
+  }
+
+  function openPendingPreset(saveFirst: boolean) {
+    if (editor?.type !== 'switch-preset') return
+    if (saveFirst) dispatch({ type: 'updatePreset' })
+    dispatch({ type: 'selectPreset', id: editor.target.id })
+    setEditor(null)
+    setAnnouncement(`${editor.target.name} opened.`)
   }
 
   function saveBlock(block: ResumeBlock, includeInResume: boolean) {
@@ -46,7 +76,7 @@ export default function App() {
   function deleteBlock(block: ResumeBlock) {
     dispatch({ type: 'deleteBlock', id: block.id })
     setEditor(null)
-    setAnnouncement(`${block.title} deleted from your library and all resume selections.`)
+    setAnnouncement(`${block.title} deleted from your library and current resume. Saved presets keep their copies.`)
   }
 
   function saveProfile(profile: ResumeProfile) {
@@ -57,7 +87,7 @@ export default function App() {
 
   function placeBlock(id: string, index: number) {
     dispatch({ type: 'placeBlock', id, index })
-    const block = state.blocks.find((item) => item.id === id)
+    const block = state.resumeBlocks.find((item) => item.id === id) ?? state.blocks.find((item) => item.id === id)
     if (block) setAnnouncement(`${block.title} placed at position ${index + 1} in ${block.type === 'project' ? 'projects' : block.type}.`)
   }
 
@@ -68,7 +98,7 @@ export default function App() {
       setAnnouncement('Drag cancelled. Your resume is unchanged.')
       return
     }
-    const block = state.blocks.find((item) => item.id === source.data.blockId)
+    const block = (source.data.kind === 'library-block' ? state.blocks : state.resumeBlocks).find((item) => item.id === source.data.blockId)
     if (!block) return
     if (target.data.kind === 'library') {
       if (source.data.kind === 'resume-block') {
@@ -90,7 +120,7 @@ export default function App() {
     <DragDropProvider
       onDragStart={(event) => {
         const source = event.operation.source
-        const block = state.blocks.find((item) => item.id === source?.data.blockId)
+        const block = (source?.data.kind === 'library-block' ? state.blocks : state.resumeBlocks).find((item) => item.id === source?.data.blockId)
         if (block) setActiveDrag({ block, fromResume: source?.data.kind === 'resume-block' })
       }}
       onDragEnd={finishDrag}
@@ -107,6 +137,7 @@ export default function App() {
         onEditBlock={(block) => setEditor({ type: 'block', block })}
         saveStatus={saveStatus}
         draggingFromResume={activeDrag?.fromResume ?? false}
+        onManagePreset={(preset) => setEditor({ type: 'preset', preset })}
       />
       <main id="main-content" className="workspace" tabIndex={-1}>
         <header className="workspace-header">
@@ -124,8 +155,8 @@ export default function App() {
               <div className="document-title">
                 <Icon name="file" size={19} />
                 <div>
-                  <h2 id="resume-name">{activePreset.name}</h2>
-                  <span>{state.modified ? 'Edited workspace' : 'Example preset'} · {saveStatus === 'saved' ? 'saved in this browser' : saveStatus === 'saving' ? 'saving…' : 'not saved'}</span>
+                  <h2 id="resume-name">{activePreset?.name ?? 'Unsaved resume'}</h2>
+                  <span>{state.modified ? 'Draft changes' : 'Matches saved preset'} · {saveStatus === 'saved' ? 'saved in this browser' : saveStatus === 'saving' ? 'saving…' : 'not saved'}</span>
                 </div>
               </div>
               <span className="block-total">{selectedBlocks.length} blocks included</span>
@@ -138,8 +169,11 @@ export default function App() {
           <BuilderTools
             compact={state.compact}
             onCompactChange={(compact) => dispatch({ type: 'setCompact', compact })}
-            onReset={() => { selectPreset(activePreset); dispatch({ type: 'setCompact', compact: false }) }}
+            onReset={() => { if (activePreset) setEditor({ type: 'switch-preset', target: activePreset, restore: true }) }}
             onEditProfile={() => setEditor({ type: 'profile' })}
+            onCreatePreset={() => setEditor({ type: 'preset', preset: null })}
+            onUpdatePreset={updatePreset}
+            canUpdatePreset={!!activePreset && state.modified}
           />
         </div>
         <p className="screen-reader-only" role="status" aria-live="polite">{announcement}</p>
@@ -154,6 +188,27 @@ export default function App() {
         />
       )}
       {editor?.type === 'profile' && <ProfileEditor profile={state.profile} onSave={saveProfile} onClose={() => setEditor(null)} />}
+      {editor?.type === 'preset' && <PresetEditor
+        preset={editor.preset}
+        presets={state.presets}
+        onSave={savePreset}
+        onDelete={() => {
+          if (editor.preset) {
+            dispatch({ type: 'deletePreset', id: editor.preset.id })
+            setAnnouncement(`${editor.preset.name} deleted. Your current draft is still available.`)
+          }
+          setEditor(null)
+        }}
+        onClose={() => setEditor(null)}
+      />}
+      {editor?.type === 'switch-preset' && <PresetSwitchDialog
+        name={editor.target.name}
+        restore={editor.restore}
+        canUpdate={!!activePreset}
+        onSaveAndOpen={() => openPendingPreset(true)}
+        onDiscard={() => openPendingPreset(false)}
+        onClose={() => setEditor(null)}
+      />}
     </div>
     </DragDropProvider>
   )

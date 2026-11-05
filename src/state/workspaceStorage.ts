@@ -1,10 +1,11 @@
 import { blockLabels } from '../types'
 import type { ResumeBlock, ResumePreset, ResumeProfile } from '../types'
-import { createInitialState } from './builder'
+import { createInitialState, markPresetChanges } from './builder'
 import type { BuilderState } from './builder'
+import { copyBlock } from './resumeSnapshots'
 
 export const WORKSPACE_STORAGE_KEY = 'resumeblocks.workspace'
-const WORKSPACE_VERSION = 1
+const WORKSPACE_VERSION = 2
 
 export type LoadIssue = 'unreadable' | 'unavailable'
 export type SaveStatus = 'saving' | 'saved' | 'error' | 'blocked'
@@ -46,7 +47,17 @@ function isProfile(value: unknown): value is ResumeProfile {
     && typeof value.website === 'string'
 }
 
-function isPreset(value: unknown): value is ResumePreset {
+interface LegacyPreset {
+  id: string
+  name: string
+  description: string
+  blockIds: string[]
+}
+
+type CoreState = Pick<BuilderState, 'blocks' | 'profile' | 'selectedIds' | 'compact' | 'modified'> & Record<string, unknown>
+type LegacyState = CoreState & { presets: LegacyPreset[]; presetId: string }
+
+function isLegacyPreset(value: unknown): value is LegacyPreset {
   return isRecord(value)
     && isNonEmptyString(value.id)
     && isNonEmptyString(value.name)
@@ -54,26 +65,71 @@ function isPreset(value: unknown): value is ResumePreset {
     && isStringArray(value.blockIds)
 }
 
+function isCoreState(value: unknown): value is CoreState {
+  return isRecord(value)
+    && Array.isArray(value.blocks) && value.blocks.every(isBlock)
+    && isProfile(value.profile) && isStringArray(value.selectedIds)
+    && typeof value.compact === 'boolean' && typeof value.modified === 'boolean'
+    && uniqueBlockIds(value.blocks)
+    && new Set(value.selectedIds).size === value.selectedIds.length
+}
+
+function uniqueBlockIds(blocks: ResumeBlock[]): boolean {
+  return new Set(blocks.map((block) => block.id)).size === blocks.length
+}
+
+function isPreset(value: unknown): value is ResumePreset {
+  return isRecord(value) && isNonEmptyString(value.id) && isNonEmptyString(value.name)
+    && typeof value.description === 'string' && isProfile(value.profile)
+    && typeof value.compact === 'boolean'
+    && Array.isArray(value.blocks) && value.blocks.every(isBlock) && uniqueBlockIds(value.blocks)
+}
+
 function isWorkspace(value: unknown): value is BuilderState {
-  if (!isRecord(value)
-    || !Array.isArray(value.blocks) || !value.blocks.every(isBlock)
-    || !isProfile(value.profile)
-    || !Array.isArray(value.presets) || !value.presets.length || !value.presets.every(isPreset)
-    || !isNonEmptyString(value.presetId)
-    || !isStringArray(value.selectedIds)
-    || typeof value.compact !== 'boolean'
-    || typeof value.modified !== 'boolean') return false
+  if (!isCoreState(value)
+    || !Array.isArray(value.resumeBlocks) || !value.resumeBlocks.every(isBlock) || !uniqueBlockIds(value.resumeBlocks)
+    || !Array.isArray(value.presets) || !value.presets.every(isPreset)) return false
+  const presetIds = new Set(value.presets.map((preset) => preset.id))
+  const resumeIds = new Set(value.resumeBlocks.map((block) => block.id))
+  return presetIds.size === value.presets.length
+    && (value.presetId === null || (isNonEmptyString(value.presetId) && presetIds.has(value.presetId)))
+    && resumeIds.size === value.selectedIds.length
+    && value.selectedIds.every((id) => resumeIds.has(id))
+}
+
+function isLegacyWorkspace(value: unknown): value is LegacyState {
+  if (!isCoreState(value)
+    || !Array.isArray(value.presets) || !value.presets.length || !value.presets.every(isLegacyPreset)
+    || !isNonEmptyString(value.presetId)) return false
 
   const blockIds = new Set(value.blocks.map((block) => block.id))
   const presetIds = new Set(value.presets.map((preset) => preset.id))
   const validReferences = (ids: string[]) => new Set(ids).size === ids.length
     && ids.every((id) => blockIds.has(id))
 
-  return blockIds.size === value.blocks.length
-    && presetIds.size === value.presets.length
+  return presetIds.size === value.presets.length
     && presetIds.has(value.presetId)
     && validReferences(value.selectedIds)
     && value.presets.every((preset) => validReferences(preset.blockIds))
+}
+
+function migrateWorkspace(legacy: LegacyState): BuilderState {
+  const copySelection = (ids: string[]) => ids.flatMap((id) => {
+    const block = legacy.blocks.find((item) => item.id === id)
+    return block ? [copyBlock(block)] : []
+  })
+  return markPresetChanges({
+    blocks: legacy.blocks.map(copyBlock),
+    resumeBlocks: copySelection(legacy.selectedIds),
+    selectedIds: [...legacy.selectedIds],
+    profile: { ...legacy.profile },
+    compact: legacy.compact,
+    presetId: legacy.presetId,
+    modified: legacy.modified,
+    presets: legacy.presets.map(({ blockIds, ...preset }) => ({
+      ...preset, blocks: copySelection(blockIds), profile: { ...legacy.profile }, compact: false,
+    })),
+  })
 }
 
 export function loadWorkspace(): LoadedWorkspace {
@@ -89,7 +145,10 @@ export function loadWorkspace(): LoadedWorkspace {
   try {
     const saved: unknown = JSON.parse(raw)
     if (isRecord(saved) && saved.version === WORKSPACE_VERSION && isWorkspace(saved.state)) {
-      return { state: saved.state, issue: null }
+      return { state: markPresetChanges(saved.state), issue: null }
+    }
+    if (isRecord(saved) && saved.version === 1 && isLegacyWorkspace(saved.state)) {
+      return { state: migrateWorkspace(saved.state), issue: null }
     }
   } catch {
     // Preserve the original saved value. Recovery requires an explicit choice.

@@ -1,11 +1,13 @@
 import { sampleBlocks, samplePresets, sampleProfile } from '../data/sampleResume'
 import type { ResumeBlock, ResumePreset, ResumeProfile } from '../types'
+import { captureResume, copyBlock, hasPresetChanges, isPresetNameAvailable } from './resumeSnapshots'
 
 export interface BuilderState {
   blocks: ResumeBlock[]
+  resumeBlocks: ResumeBlock[]
   profile: ResumeProfile
   presets: ResumePreset[]
-  presetId: string
+  presetId: string | null
   selectedIds: string[]
   compact: boolean
   modified: boolean
@@ -20,17 +22,38 @@ export type BuilderAction =
   | { type: 'setCompact'; compact: boolean }
   | { type: 'placeBlock'; id: string; index: number }
   | { type: 'removeBlock'; id: string }
+  | { type: 'createPreset'; id: string; name: string; description: string }
+  | { type: 'updatePreset' }
+  | { type: 'renamePreset'; id: string; name: string; description: string }
+  | { type: 'deletePreset'; id: string }
+
+export function markPresetChanges(state: BuilderState): BuilderState {
+  return { ...state, modified: hasPresetChanges(captureResume(state), state.presets.find((preset) => preset.id === state.presetId)) }
+}
 
 export function createInitialState(): BuilderState {
   return {
-    blocks: sampleBlocks.map((block) => ({ ...block, bullets: [...block.bullets] })),
+    blocks: sampleBlocks.map(copyBlock),
+    resumeBlocks: samplePresets[0].blocks.map(copyBlock),
     profile: { ...sampleProfile },
-    presets: samplePresets.map((preset) => ({ ...preset, blockIds: [...preset.blockIds] })),
+    presets: samplePresets.map((preset) => ({ ...preset, blocks: preset.blocks.map(copyBlock), profile: { ...preset.profile } })),
     presetId: samplePresets[0].id,
-    selectedIds: [...samplePresets[0].blockIds],
+    selectedIds: samplePresets[0].blocks.map((block) => block.id),
     compact: false,
     modified: false,
   }
+}
+
+function removeFromResume(state: BuilderState, id: string): BuilderState {
+  if (!state.selectedIds.includes(id)) return state
+  const block = state.resumeBlocks.find((item) => item.id === id)
+  return markPresetChanges({
+    ...state,
+    // A block loaded from a snapshot might no longer exist in the library.
+    blocks: block && !state.blocks.some((item) => item.id === id) ? [...state.blocks, copyBlock(block)] : state.blocks,
+    resumeBlocks: state.resumeBlocks.filter((item) => item.id !== id),
+    selectedIds: state.selectedIds.filter((item) => item !== id),
+  })
 }
 
 export function builderReducer(state: BuilderState, action: BuilderAction): BuilderState {
@@ -38,67 +61,92 @@ export function builderReducer(state: BuilderState, action: BuilderAction): Buil
     case 'selectPreset': {
       const preset = state.presets.find((item) => item.id === action.id)
       if (!preset) return state
-      return { ...state, presetId: preset.id, selectedIds: [...preset.blockIds] }
-    }
-    case 'toggleBlock': {
-      if (!state.blocks.some((block) => block.id === action.id)) return state
-      const included = state.selectedIds.includes(action.id)
       return {
         ...state,
-        modified: true,
-        selectedIds: included
-          ? state.selectedIds.filter((id) => id !== action.id)
-          : [...state.selectedIds, action.id],
+        presetId: preset.id,
+        selectedIds: preset.blocks.map((block) => block.id),
+        resumeBlocks: preset.blocks.map(copyBlock),
+        profile: { ...preset.profile },
+        compact: preset.compact,
+        modified: false,
       }
     }
-    case 'removeBlock':
-      return state.selectedIds.includes(action.id)
-        ? { ...state, modified: true, selectedIds: state.selectedIds.filter((id) => id !== action.id) }
-        : state
-    case 'placeBlock': {
+    case 'toggleBlock': {
+      if (state.selectedIds.includes(action.id)) return removeFromResume(state, action.id)
       const block = state.blocks.find((item) => item.id === action.id)
+      if (!block) return state
+      return markPresetChanges({
+        ...state,
+        selectedIds: [...state.selectedIds, action.id],
+        resumeBlocks: [...state.resumeBlocks, copyBlock(block)],
+      })
+    }
+    case 'removeBlock':
+      return removeFromResume(state, action.id)
+    case 'placeBlock': {
+      const block = state.resumeBlocks.find((item) => item.id === action.id) ?? state.blocks.find((item) => item.id === action.id)
       if (!block || !Number.isInteger(action.index)) return state
       const remaining = state.selectedIds.filter((id) => id !== action.id)
-      const peers = remaining.filter((id) => state.blocks.find((item) => item.id === id)?.type === block.type)
+      const peers = remaining.filter((id) => state.resumeBlocks.find((item) => item.id === id)?.type === block.type)
       const index = Math.max(0, Math.min(action.index, peers.length))
       const beforeId = peers[index]
       const insertionIndex = beforeId ? remaining.indexOf(beforeId)
         : peers.length ? remaining.indexOf(peers[peers.length - 1]) + 1 : remaining.length
       const selectedIds = [...remaining]
       selectedIds.splice(insertionIndex, 0, action.id)
-      if (selectedIds.every((id, position) => state.selectedIds[position] === id)
-        && selectedIds.length === state.selectedIds.length) return state
-      return { ...state, selectedIds, modified: true }
+      if (selectedIds.length === state.selectedIds.length && selectedIds.every((id, position) => state.selectedIds[position] === id)) return state
+      return markPresetChanges({
+        ...state,
+        selectedIds,
+        resumeBlocks: state.resumeBlocks.some((item) => item.id === action.id) ? state.resumeBlocks : [...state.resumeBlocks, copyBlock(block)],
+      })
     }
     case 'saveBlock': {
       const exists = state.blocks.some((block) => block.id === action.block.id)
       const included = state.selectedIds.includes(action.block.id)
-      return {
+      return markPresetChanges({
         ...state,
-        modified: true,
         blocks: exists
-          ? state.blocks.map((block) => block.id === action.block.id ? action.block : block)
-          : [...state.blocks, action.block],
+          ? state.blocks.map((block) => block.id === action.block.id ? copyBlock(action.block) : block)
+          : [...state.blocks, copyBlock(action.block)],
+        resumeBlocks: action.includeInResume
+          ? included
+            ? state.resumeBlocks.map((block) => block.id === action.block.id ? copyBlock(action.block) : block)
+            : [...state.resumeBlocks, copyBlock(action.block)]
+          : state.resumeBlocks.filter((block) => block.id !== action.block.id),
         selectedIds: action.includeInResume
           ? included ? state.selectedIds : [...state.selectedIds, action.block.id]
           : state.selectedIds.filter((id) => id !== action.block.id),
-      }
+      })
     }
     case 'deleteBlock':
-      return {
+      return markPresetChanges({
         ...state,
-        modified: true,
         blocks: state.blocks.filter((block) => block.id !== action.id),
+        resumeBlocks: state.resumeBlocks.filter((block) => block.id !== action.id),
         selectedIds: state.selectedIds.filter((id) => id !== action.id),
-        // A deleted block must not reappear when another example is loaded.
-        presets: state.presets.map((preset) => ({
-          ...preset,
-          blockIds: preset.blockIds.filter((id) => id !== action.id),
-        })),
-      }
+      })
     case 'saveProfile':
-      return { ...state, profile: action.profile, modified: true }
+      return markPresetChanges({ ...state, profile: { ...action.profile } })
     case 'setCompact':
-      return { ...state, compact: action.compact }
+      return markPresetChanges({ ...state, compact: action.compact })
+    case 'createPreset': {
+      if (state.presets.some((preset) => preset.id === action.id) || !isPresetNameAvailable(state.presets, action.name)) return state
+      const preset: ResumePreset = { id: action.id, name: action.name.trim(), description: action.description.trim(), ...captureResume(state) }
+      return { ...state, presets: [...state.presets, preset], presetId: preset.id, modified: false }
+    }
+    case 'updatePreset': {
+      if (!state.presets.some((preset) => preset.id === state.presetId)) return state
+      const snapshot = captureResume(state)
+      return { ...state, presets: state.presets.map((preset) => preset.id === state.presetId ? { ...preset, ...snapshot } : preset), modified: false }
+    }
+    case 'renamePreset': {
+      if (!isPresetNameAvailable(state.presets, action.name, action.id)) return state
+      return { ...state, presets: state.presets.map((preset) => preset.id === action.id ? { ...preset, name: action.name.trim(), description: action.description.trim() } : preset) }
+    }
+    case 'deletePreset': {
+      const presets = state.presets.filter((preset) => preset.id !== action.id)
+      return markPresetChanges({ ...state, presets, presetId: state.presetId === action.id ? null : state.presetId })
+    }
   }
 }

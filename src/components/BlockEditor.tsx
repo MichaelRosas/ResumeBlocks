@@ -119,7 +119,7 @@ export function BlockEditor({ block, included, onSave, onDelete, onClose }: Bloc
           {confirmDelete && block && (
             <div className="delete-confirmation" role="alert">
               <strong>Delete “{block.title}” from your library?</strong>
-              <p>This removes it from every resume selection. You cannot undo this.</p>
+              <p>This removes it from your library and current resume. Saved presets keep their copies. You cannot undo this deletion.</p>
               <div className="confirmation-actions">
                 <button type="button" className="secondary-button" onClick={() => setConfirmDelete(false)}>Keep block</button>
                 <button type="button" className="danger-button" onClick={() => onDelete(block)}>Delete permanently</button>

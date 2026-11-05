@@ -10,16 +10,17 @@ interface BlockLibraryProps {
   blocks: ResumeBlock[]
   selectedIds: string[]
   presets: ResumePreset[]
-  activePresetId: string
+  activePresetId: string | null
   onToggleBlock: (id: string) => void
   onSelectPreset: (preset: ResumePreset) => void
   onCreateBlock: () => void
   onEditBlock: (block: ResumeBlock) => void
   saveStatus: SaveStatus
   draggingFromResume: boolean
+  onManagePreset: (preset: ResumePreset) => void
 }
 
-export function BlockLibrary({ blocks, selectedIds, presets, activePresetId, onToggleBlock, onSelectPreset, onCreateBlock, onEditBlock, saveStatus, draggingFromResume }: BlockLibraryProps) {
+export function BlockLibrary({ blocks, selectedIds, presets, activePresetId, onToggleBlock, onSelectPreset, onCreateBlock, onEditBlock, saveStatus, draggingFromResume, onManagePreset }: BlockLibraryProps) {
   const [search, setSearch] = useState('')
   const { ref, isDropTarget } = useDroppable({
     id: 'block-library',
@@ -56,9 +57,13 @@ export function BlockLibrary({ blocks, selectedIds, presets, activePresetId, onT
       <p className="library-hint"><Icon name="grip" size={14} /> Drag a handle to add. Click a card to toggle.</p>
 
       <section className="presets" aria-labelledby="presets-heading">
-        <div className="library-heading"><h2 id="presets-heading">Resume presets</h2><span className="sample-badge">Examples</span></div>
+        <div className="library-heading"><h2 id="presets-heading">Saved presets</h2><span className="count">{presets.length}</span></div>
         <div className="preset-list">
-          {presets.map((preset) => <button key={preset.id} type="button" className={`preset ${preset.id === activePresetId ? 'is-active' : ''}`} aria-pressed={preset.id === activePresetId} onClick={() => onSelectPreset(preset)}><Icon name="file" size={20} /><span><strong>{preset.name}</strong><small>{preset.description}</small></span><Icon name="chevron" size={15} /></button>)}
+          {presets.map((preset) => <div key={preset.id} className="preset-row">
+            <button type="button" className={`preset ${preset.id === activePresetId ? 'is-active' : ''}`} aria-pressed={preset.id === activePresetId} onClick={() => onSelectPreset(preset)}><Icon name="file" size={20} /><span><strong>{preset.name}</strong><small>{preset.description || `${preset.blocks.length} blocks`}</small></span></button>
+            <button type="button" className="manage-preset-button" aria-label={`Manage ${preset.name}`} title="Rename or delete preset" onClick={() => onManagePreset(preset)}><Icon name="edit" size={15} /></button>
+          </div>)}
+          {presets.length === 0 && <p className="no-results">No saved presets yet. Use Save as new to keep this resume.</p>}
         </div>
       </section>
       <div className={`library-footer save-status-${saveStatus}`} role="status">
