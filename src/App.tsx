@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { DragDropProvider } from '@dnd-kit/react'
+import type { DragEndEvent } from '@dnd-kit/react'
+import { isSortable } from '@dnd-kit/react/sortable'
 import { BlockEditor } from './components/BlockEditor'
 import { BlockLibrary } from './components/BlockLibrary'
 import { BuilderTools } from './components/BuilderTools'
@@ -15,6 +18,7 @@ export default function App() {
   const { state, dispatch, saveStatus, loadIssue, retrySave, replaceSavedWorkspace } = useWorkspace()
   const [announcement, setAnnouncement] = useState('')
   const [editor, setEditor] = useState<Editor>(null)
+  const [activeDrag, setActiveDrag] = useState<{ block: ResumeBlock; fromResume: boolean } | null>(null)
   const activePreset = state.presets.find((preset) => preset.id === state.presetId)!
   const selectedBlocks = state.selectedIds.flatMap((id) => {
     const block = state.blocks.find((item) => item.id === id)
@@ -51,7 +55,46 @@ export default function App() {
     setAnnouncement('Contact details updated.')
   }
 
+  function placeBlock(id: string, index: number) {
+    dispatch({ type: 'placeBlock', id, index })
+    const block = state.blocks.find((item) => item.id === id)
+    if (block) setAnnouncement(`${block.title} placed at position ${index + 1} in ${block.type === 'project' ? 'projects' : block.type}.`)
+  }
+
+  function finishDrag(event: DragEndEvent) {
+    setActiveDrag(null)
+    const { source, target } = event.operation
+    if (event.canceled || !source || !target) {
+      setAnnouncement('Drag cancelled. Your resume is unchanged.')
+      return
+    }
+    const block = state.blocks.find((item) => item.id === source.data.blockId)
+    if (!block) return
+    if (target.data.kind === 'library') {
+      if (source.data.kind === 'resume-block') {
+        dispatch({ type: 'removeBlock', id: block.id })
+        setAnnouncement(`${block.title} removed from the resume and kept in your library.`)
+      }
+      return
+    }
+    if (target.data.kind !== 'resume-page' && target.data.kind !== 'resume-section' && target.data.kind !== 'resume-block') return
+    if (target.data.blockType && target.data.blockType !== block.type) return
+    const peers = selectedBlocks.filter((item) => item.type === block.type && item.id !== block.id)
+    const index = source.data.kind === 'resume-block' && isSortable(source)
+      ? source.index
+      : target.data.kind === 'resume-block' ? target.data.index : peers.length
+    placeBlock(block.id, index)
+  }
+
   return (
+    <DragDropProvider
+      onDragStart={(event) => {
+        const source = event.operation.source
+        const block = state.blocks.find((item) => item.id === source?.data.blockId)
+        if (block) setActiveDrag({ block, fromResume: source?.data.kind === 'resume-block' })
+      }}
+      onDragEnd={finishDrag}
+    >
     <div className="app-shell">
       <BlockLibrary
         blocks={state.blocks}
@@ -63,6 +106,7 @@ export default function App() {
         onCreateBlock={() => setEditor({ type: 'block', block: null })}
         onEditBlock={(block) => setEditor({ type: 'block', block })}
         saveStatus={saveStatus}
+        draggingFromResume={activeDrag?.fromResume ?? false}
       />
       <main id="main-content" className="workspace" tabIndex={-1}>
         <header className="workspace-header">
@@ -87,9 +131,9 @@ export default function App() {
               <span className="block-total">{selectedBlocks.length} blocks included</span>
             </div>
             <div className="paper-surround">
-              <ResumePreview profile={state.profile} blocks={selectedBlocks} compact={state.compact} onRemoveBlock={toggleBlock} />
+              <ResumePreview profile={state.profile} blocks={selectedBlocks} compact={state.compact} onRemoveBlock={toggleBlock} onMoveBlock={placeBlock} activeBlock={activeDrag?.block ?? null} />
             </div>
-            <p className="canvas-caption"><Icon name="check" size={14} /> Your preview updates as you edit your resume.</p>
+            <p className="canvas-caption"><Icon name="grip" size={14} /> Drag handles to reorder within a section, or use the up/down buttons.</p>
           </section>
           <BuilderTools
             compact={state.compact}
@@ -111,5 +155,6 @@ export default function App() {
       )}
       {editor?.type === 'profile' && <ProfileEditor profile={state.profile} onSave={saveProfile} onClose={() => setEditor(null)} />}
     </div>
+    </DragDropProvider>
   )
 }

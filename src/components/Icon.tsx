@@ -16,6 +16,9 @@ const paths = {
   close: 'm6 6 12 12M6 18 18 6',
   chevron: 'm9 5 7 7-7 7',
   edit: 'm16 3 5 5-12 12-6 1 1-6L16 3Zm-2 2 5 5',
+  grip: 'M9 5h.01M15 5h.01M9 12h.01M15 12h.01M9 19h.01M15 19h.01',
+  up: 'm6 14 6-6 6 6',
+  down: 'm6 10 6 6 6-6',
 } as const
 
 export type IconName = keyof typeof paths

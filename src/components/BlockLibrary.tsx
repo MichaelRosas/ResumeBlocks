@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { useDroppable } from '@dnd-kit/react'
 import { blockLabels } from '../types'
 import type { ResumeBlock, ResumePreset } from '../types'
 import type { SaveStatus } from '../state/workspaceStorage'
 import { Icon } from './Icon'
+import { LibraryBlockCard } from './LibraryBlockCard'
 
 interface BlockLibraryProps {
   blocks: ResumeBlock[]
@@ -14,17 +16,23 @@ interface BlockLibraryProps {
   onCreateBlock: () => void
   onEditBlock: (block: ResumeBlock) => void
   saveStatus: SaveStatus
+  draggingFromResume: boolean
 }
 
-export function BlockLibrary({ blocks, selectedIds, presets, activePresetId, onToggleBlock, onSelectPreset, onCreateBlock, onEditBlock, saveStatus }: BlockLibraryProps) {
+export function BlockLibrary({ blocks, selectedIds, presets, activePresetId, onToggleBlock, onSelectPreset, onCreateBlock, onEditBlock, saveStatus, draggingFromResume }: BlockLibraryProps) {
   const [search, setSearch] = useState('')
+  const { ref, isDropTarget } = useDroppable({
+    id: 'block-library',
+    accept: (source) => source.data.kind === 'resume-block',
+    data: { kind: 'library' },
+  })
   const query = search.trim().toLowerCase()
   const filteredBlocks = blocks.filter((block) =>
     `${block.title} ${block.subtitle} ${blockLabels[block.type]} ${block.bullets.join(' ')}`.toLowerCase().includes(query),
   )
 
   return (
-    <aside className="library" aria-label="Block library and presets">
+    <aside ref={ref} className={`library ${isDropTarget ? 'is-library-drop-target' : ''}`} aria-label="Block library and presets">
       <a className="brand" href="#main-content" aria-label="ResumeBlocks, skip to builder">
         <span className="brand-mark"><Icon name="blocks" size={23} /></span>
         <span>Resume<span className="brand-light">Blocks</span><small>YOUR EXPERIENCE, REASSEMBLED.</small></span>
@@ -34,24 +42,18 @@ export function BlockLibrary({ blocks, selectedIds, presets, activePresetId, onT
       <p className="library-intro">Your experience. Ready to reuse.</p>
       <label className="search-field"><Icon name="search" size={17} /><input type="search" aria-label="Search blocks" placeholder="Search your blocks…" value={search} onChange={(event) => setSearch(event.target.value)} /></label>
       <button type="button" className="add-block-button" data-editor-fallback onClick={() => { setSearch(''); onCreateBlock() }}><Icon name="plus" size={17} /> Add new block</button>
+      {draggingFromResume && <p className="library-drop-hint">Drop here to remove from the resume and keep in your library.</p>}
 
       <div className="block-list">
         {filteredBlocks.map((block) => {
           const included = selectedIds.includes(block.id)
           return (
-            <div key={block.id} className="library-block-row">
-              <button type="button" className={`library-block ${included ? 'is-included' : ''}`} aria-pressed={included} aria-label={`${included ? 'Remove' : 'Add'} ${block.title} ${included ? 'from' : 'to'} resume`} onClick={() => onToggleBlock(block.id)}>
-                <span className={`block-icon icon-${block.type}`}><Icon name={block.type} size={19} /></span>
-                <span className="block-info"><span className="block-kind">{blockLabels[block.type]}</span><strong>{block.title}</strong><span className="block-subtitle">{block.subtitle}</span></span>
-                <span className={`block-toggle ${included ? 'is-included' : ''}`}><Icon name={included ? 'check' : 'plus'} size={15} /></span>
-              </button>
-              <button type="button" className="edit-library-block" aria-label={`Edit ${block.title}`} title={`Edit ${block.title}`} onClick={() => onEditBlock(block)}><Icon name="edit" size={16} /></button>
-            </div>
+            <LibraryBlockCard key={block.id} block={block} included={included} onToggle={() => onToggleBlock(block.id)} onEdit={() => onEditBlock(block)} />
           )
         })}
         {filteredBlocks.length === 0 && <p className="no-results">{blocks.length === 0 ? 'Your library is empty. Add a block to get started.' : `No blocks match “${search}”. Try a project, skill, or company.`}</p>}
       </div>
-      <p className="library-hint"><Icon name="plus" size={14} /> Click a block to add or remove it.</p>
+      <p className="library-hint"><Icon name="grip" size={14} /> Drag a handle to add. Click a card to toggle.</p>
 
       <section className="presets" aria-labelledby="presets-heading">
         <div className="library-heading"><h2 id="presets-heading">Resume presets</h2><span className="sample-badge">Examples</span></div>

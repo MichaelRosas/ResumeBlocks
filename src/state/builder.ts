@@ -18,6 +18,8 @@ export type BuilderAction =
   | { type: 'deleteBlock'; id: string }
   | { type: 'saveProfile'; profile: ResumeProfile }
   | { type: 'setCompact'; compact: boolean }
+  | { type: 'placeBlock'; id: string; index: number }
+  | { type: 'removeBlock'; id: string }
 
 export function createInitialState(): BuilderState {
   return {
@@ -48,6 +50,25 @@ export function builderReducer(state: BuilderState, action: BuilderAction): Buil
           ? state.selectedIds.filter((id) => id !== action.id)
           : [...state.selectedIds, action.id],
       }
+    }
+    case 'removeBlock':
+      return state.selectedIds.includes(action.id)
+        ? { ...state, modified: true, selectedIds: state.selectedIds.filter((id) => id !== action.id) }
+        : state
+    case 'placeBlock': {
+      const block = state.blocks.find((item) => item.id === action.id)
+      if (!block || !Number.isInteger(action.index)) return state
+      const remaining = state.selectedIds.filter((id) => id !== action.id)
+      const peers = remaining.filter((id) => state.blocks.find((item) => item.id === id)?.type === block.type)
+      const index = Math.max(0, Math.min(action.index, peers.length))
+      const beforeId = peers[index]
+      const insertionIndex = beforeId ? remaining.indexOf(beforeId)
+        : peers.length ? remaining.indexOf(peers[peers.length - 1]) + 1 : remaining.length
+      const selectedIds = [...remaining]
+      selectedIds.splice(insertionIndex, 0, action.id)
+      if (selectedIds.every((id, position) => state.selectedIds[position] === id)
+        && selectedIds.length === state.selectedIds.length) return state
+      return { ...state, selectedIds, modified: true }
     }
     case 'saveBlock': {
       const exists = state.blocks.some((block) => block.id === action.block.id)

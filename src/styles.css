@@ -65,8 +65,8 @@ h1, h2, h3, h4, p { margin: 0; }
 .document-title h2 { font-size: 12px; color: #273f53; font-weight: 600; }
 .document-title span { display: block; margin-top: 4px; color: #7b8e9d; font-size: 9px; }
 .block-total { font-size: 10px; color: #6c8294; white-space: nowrap; }
-.paper-surround { padding: 26px; background: #e2ebf2; border: 1px solid #dce5ec; border-top: 0; border-radius: 0 0 8px 8px; }
-.resume-page { aspect-ratio: 8.5 / 11; min-height: 650px; padding: 39px 35px; background: white; color: #253443; box-shadow: 0 3px 14px #263d5010; font-family: Georgia, "Times New Roman", serif; overflow-wrap: anywhere; }
+.paper-surround { container-type: inline-size; padding: 26px; background: #e2ebf2; border: 1px solid #dce5ec; border-top: 0; border-radius: 0 0 8px 8px; }
+.resume-page { width: 100%; min-width: 0; min-height: max(650px, calc(100cqw * 22 / 17)); padding: 39px 35px; background: white; color: #253443; box-shadow: 0 3px 14px #263d5010; font-family: Georgia, "Times New Roman", serif; overflow-wrap: anywhere; }
 .resume-header { text-align: center; margin-bottom: 22px; }
 .resume-header h2 { font-size: 27px; letter-spacing: .4px; font-weight: 600; }
 .resume-headline { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 10px; letter-spacing: .4px; color: #6c7882; margin-top: 6px; }
@@ -81,9 +81,6 @@ h1, h2, h3, h4, p { margin: 0; }
 .resume-subtitle { color: #63727f; font-style: italic; font-size: 10px; margin-top: 2px; }
 .resume-block ul { padding-left: 13px; margin: 5px 0 0; }
 .resume-block li { padding-left: 2px; margin-top: 2px; }
-.remove-block { position: absolute; top: -2px; left: -25px; display: grid; place-items: center; width: 20px; height: 20px; background: #f4f7fa; color: #667f91; border: 1px solid #dce5ec; border-radius: 4px; opacity: 0; }
-.resume-block:hover .remove-block, .resume-block:focus-within .remove-block { opacity: 1; }
-.remove-block:hover { color: #b33b3b; background: #fff1f1; }
 .is-compact { padding-top: 29px; padding-bottom: 29px; }
 .is-compact .resume-header { margin-bottom: 15px; }
 .is-compact .resume-section { margin-top: 14px; }
@@ -119,7 +116,25 @@ h1, h2, h3, h4, p { margin: 0; }
 .add-block-button { width: 100%; display: flex; justify-content: center; align-items: center; gap: 7px; padding: 10px; margin-bottom: 16px; border-radius: 6px; border: 1px solid #4599f3; background: #247cda; color: white; font-size: 12px; font-weight: 600; }
 .add-block-button:hover { background: #176cc6; }
 .library-block-row { display: flex; min-width: 0; }
-.library-block-row .library-block { flex: 1; min-width: 0; border-radius: 7px 0 0 7px; }
+.library-block-row .library-block { flex: 1; min-width: 0; border-radius: 0; }
+.library-drag-handle { display: grid; place-items: center; width: 27px; flex-shrink: 0; padding: 0; border: 1px solid #c2d3e1; border-right: 0; border-radius: 7px 0 0 7px; background: #e0ebf4; color: #497394; cursor: grab; touch-action: none; user-select: none; }
+.library-drag-handle:hover:not(:disabled) { background: #cbe1f4; }
+.library-drag-handle:disabled { color: #92a9ba; cursor: default; }
+.library.is-library-drop-target { box-shadow: inset 0 0 0 3px #8cc7ff; }
+.library-drop-hint { padding: 12px; margin-bottom: 14px; border: 1px dashed #a6c8e6; border-radius: 6px; color: #e0effc; font-size: 12px; line-height: 1.6; background: #34566f; }
+.resume-block { min-height: 57px; }
+.resume-drag-handle { position: absolute; left: -26px; top: 0; width: 20px; height: 23px; display: grid; place-items: center; padding: 0; border: 1px solid transparent; border-radius: 4px; background: #f4f7fa; color: #6e8ba0; cursor: grab; touch-action: none; user-select: none; }
+.resume-drag-handle:hover { border-color: #a8c9e5; background: #e9f3fc; }
+.resume-order-actions { position: absolute; right: -25px; top: 0; display: grid; gap: 2px; opacity: 0; }
+.resume-order-actions button { display: grid; place-items: center; width: 19px; height: 17px; padding: 0; border: 1px solid #dbe5ed; border-radius: 3px; background: #f4f8fb; color: #507491; }
+.resume-order-actions button:hover:not(:disabled) { background: #dcecfb; color: #2368a3; }
+.resume-order-actions button:disabled { color: #b8c5cf; }
+.resume-block:hover .resume-order-actions, .resume-block:focus-within .resume-order-actions { opacity: 1; }
+.is-block-drop-target:not(.is-drag-source) { outline: 2px solid #92bfe9; outline-offset: 5px; border-radius: 2px; }
+.is-page-drop-target { outline: 2px solid #5c9fdf; outline-offset: 3px; }
+.is-section-drag-active { background: #f6faff; }
+.is-section-drop-target { outline: 2px dashed #7bb2e4; outline-offset: 7px; }
+.empty-section-drop { padding: 22px 12px; border: 1px dashed #a1c4e4; border-radius: 5px; color: #5e84a5; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 12px; text-align: center; }
 .block-info strong { overflow-wrap: anywhere; }
 .edit-library-block { flex-shrink: 0; width: 31px; border: 1px solid #c2d3e1; border-left: 0; border-radius: 0 7px 7px 0; background: #e0ebf4; color: #497394; display: grid; place-items: center; }
 .edit-library-block:hover { background: #cbe1f4; color: #235d8d; }
@@ -175,3 +190,5 @@ h1, h2, h3, h4, p { margin: 0; }
 @media (max-width: 420px) { .block-list { grid-template-columns: 1fr; } .preset-list { grid-template-columns: 1fr; } .builder-tools { grid-template-columns: 1fr; } .paper-surround { padding: 9px; } .resume-page { padding-left: 23px; padding-right: 17px; } .resume-block-heading { gap: 6px; } .canvas-caption { font-size: 9px; } }
 @media (max-width: 600px) { .editor-header { padding: 19px 16px; } .editor-fields { padding: 20px 16px; } .editor-footer { padding: 14px 16px; flex-wrap: wrap; } .form-field input, .form-field select, .form-field textarea { font-size: 16px; } }
 @media (max-width: 760px) { .storage-notice { flex-direction: column; align-items: start; gap: 12px; } }
+@media (max-width: 760px) { .resume-drag-handle { left: -22px; width: 17px; } .resume-order-actions { right: -18px; opacity: 1; } .resume-order-actions button { width: 16px; } .canvas-caption { align-items: start; line-height: 1.6; } }
+@media (hover: none) { .resume-order-actions { opacity: 1; } }
