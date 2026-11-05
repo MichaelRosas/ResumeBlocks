@@ -160,6 +160,12 @@ h1, h2, h3, h4, p { margin: 0; }
 .danger-button { border: 1px solid #a93434; background: #b83e3e; color: white; }
 .danger-button:hover { background: #9d2c2c; }
 .form-error { color: #a93434; font-size: 12px; }
+.save-status-saved .status-dot, .demo-tag.save-status-saved > span { background: #80b6a5; }
+.save-status-error .status-dot, .save-status-blocked .status-dot, .demo-tag.save-status-error > span, .demo-tag.save-status-blocked > span { background: #e5ac6b; }
+.save-status-saving .status-dot, .demo-tag.save-status-saving > span { background: #91b7d8; }
+.storage-notice { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 17px 19px; margin-bottom: 22px; border: 1px solid #e5c58f; border-radius: 8px; background: #fff8eb; color: #755323; font-size: 12px; line-height: 1.7; }
+.storage-notice p { margin-top: 5px; }
+.storage-notice button { flex-shrink: 0; }
 .delete-confirmation { padding: 16px; border: 1px solid #ebc4c4; border-radius: 7px; background: #fff6f6; color: #843434; font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
 .delete-confirmation p { margin-top: 7px; }
 .confirmation-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 13px; }
@@ -168,3 +174,4 @@ h1, h2, h3, h4, p { margin: 0; }
 @media (max-width: 760px) { .app-shell { grid-template-columns: 1fr; } .library { padding: 20px; } .brand { margin-bottom: 25px; } .library-intro { margin-bottom: 13px; } .block-list { grid-template-columns: 1fr 1fr; } .presets { margin-top: 22px; padding-top: 20px; } .preset-list { grid-template-columns: 1fr 1fr; margin-top: 12px; } .library-footer { padding-top: 20px; } .workspace { padding: 25px 16px; } .workspace-header { margin-bottom: 23px; } .workspace-header h1 { font-size: 25px; } .workspace-header p { font-size: 11px; } .paper-surround { padding: 15px; } .resume-page { padding: 28px 25px; min-height: 620px; } .resume-contact { font-size: 8px; } .resume-block-heading h4 { font-size: 10px; } .resume-block-heading > span { font-size: 8px; } .resume-block { font-size: 9px; } .resume-subtitle { font-size: 9px; } .remove-block { opacity: 1; width: 17px; height: 17px; left: -21px; } .canvas-toolbar { padding: 14px; } .block-total { font-size: 9px; } }
 @media (max-width: 420px) { .block-list { grid-template-columns: 1fr; } .preset-list { grid-template-columns: 1fr; } .builder-tools { grid-template-columns: 1fr; } .paper-surround { padding: 9px; } .resume-page { padding-left: 23px; padding-right: 17px; } .resume-block-heading { gap: 6px; } .canvas-caption { font-size: 9px; } }
 @media (max-width: 600px) { .editor-header { padding: 19px 16px; } .editor-fields { padding: 20px 16px; } .editor-footer { padding: 14px 16px; flex-wrap: wrap; } .form-field input, .form-field select, .form-field textarea { font-size: 16px; } }
+@media (max-width: 760px) { .storage-notice { flex-direction: column; align-items: start; gap: 12px; } }

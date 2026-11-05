@@ -7,6 +7,7 @@ export interface BuilderState {
   presets: ResumePreset[]
   presetId: string
   selectedIds: string[]
+  compact: boolean
   modified: boolean
 }
 
@@ -16,6 +17,7 @@ export type BuilderAction =
   | { type: 'saveBlock'; block: ResumeBlock; includeInResume: boolean }
   | { type: 'deleteBlock'; id: string }
   | { type: 'saveProfile'; profile: ResumeProfile }
+  | { type: 'setCompact'; compact: boolean }
 
 export function createInitialState(): BuilderState {
   return {
@@ -24,6 +26,7 @@ export function createInitialState(): BuilderState {
     presets: samplePresets.map((preset) => ({ ...preset, blockIds: [...preset.blockIds] })),
     presetId: samplePresets[0].id,
     selectedIds: [...samplePresets[0].blockIds],
+    compact: false,
     modified: false,
   }
 }
@@ -74,5 +77,7 @@ export function builderReducer(state: BuilderState, action: BuilderAction): Buil
       }
     case 'saveProfile':
       return { ...state, profile: action.profile, modified: true }
+    case 'setCompact':
+      return { ...state, compact: action.compact }
   }
 }

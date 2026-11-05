@@ -1,18 +1,18 @@
-import { useReducer, useState } from 'react'
+import { useState } from 'react'
 import { BlockEditor } from './components/BlockEditor'
 import { BlockLibrary } from './components/BlockLibrary'
 import { BuilderTools } from './components/BuilderTools'
 import { Icon } from './components/Icon'
 import { ProfileEditor } from './components/ProfileEditor'
 import { ResumePreview } from './components/ResumePreview'
-import { builderReducer, createInitialState } from './state/builder'
+import { StorageNotice } from './components/StorageNotice'
+import { useWorkspace } from './state/useWorkspace'
 import type { ResumeBlock, ResumePreset, ResumeProfile } from './types'
 
 type Editor = { type: 'block'; block: ResumeBlock | null } | { type: 'profile' } | null
 
 export default function App() {
-  const [state, dispatch] = useReducer(builderReducer, undefined, createInitialState)
-  const [compact, setCompact] = useState(false)
+  const { state, dispatch, saveStatus, loadIssue, retrySave, replaceSavedWorkspace } = useWorkspace()
   const [announcement, setAnnouncement] = useState('')
   const [editor, setEditor] = useState<Editor>(null)
   const activePreset = state.presets.find((preset) => preset.id === state.presetId)!
@@ -36,7 +36,7 @@ export default function App() {
   function saveBlock(block: ResumeBlock, includeInResume: boolean) {
     dispatch({ type: 'saveBlock', block, includeInResume })
     setEditor(null)
-    setAnnouncement(`${block.title} saved to your library${includeInResume ? ' and included in the current resume' : ''}. Changes reset on refresh.`)
+    setAnnouncement(`${block.title} ${state.blocks.some((item) => item.id === block.id) ? 'updated in' : 'added to'} your library${includeInResume ? ' and included in the current resume' : ''}.`)
   }
 
   function deleteBlock(block: ResumeBlock) {
@@ -48,7 +48,7 @@ export default function App() {
   function saveProfile(profile: ResumeProfile) {
     dispatch({ type: 'saveProfile', profile })
     setEditor(null)
-    setAnnouncement('Contact details updated. Changes reset on refresh.')
+    setAnnouncement('Contact details updated.')
   }
 
   return (
@@ -62,6 +62,7 @@ export default function App() {
         onSelectPreset={selectPreset}
         onCreateBlock={() => setEditor({ type: 'block', block: null })}
         onEditBlock={(block) => setEditor({ type: 'block', block })}
+        saveStatus={saveStatus}
       />
       <main id="main-content" className="workspace" tabIndex={-1}>
         <header className="workspace-header">
@@ -70,8 +71,9 @@ export default function App() {
             <h1>Build your next opportunity.</h1>
             <p>Bring your experience together. One block at a time.</p>
           </div>
-          <span className="demo-tag"><span /> Changes reset on refresh</span>
+          <span className={`demo-tag save-status-${saveStatus}`}><span />{saveStatus === 'saved' ? 'Saved in this browser' : saveStatus === 'saving' ? 'Saving changes…' : 'Changes not saved'}</span>
         </header>
+        <StorageNotice status={saveStatus} loadIssue={loadIssue} onRetry={retrySave} onReplace={replaceSavedWorkspace} />
         <div className="builder-layout">
           <section className="canvas" aria-labelledby="resume-name">
             <div className="canvas-toolbar">
@@ -79,20 +81,20 @@ export default function App() {
                 <Icon name="file" size={19} />
                 <div>
                   <h2 id="resume-name">{activePreset.name}</h2>
-                  <span>{state.modified ? 'Edited workspace · not saved' : 'Example preset'}</span>
+                  <span>{state.modified ? 'Edited workspace' : 'Example preset'} · {saveStatus === 'saved' ? 'saved in this browser' : saveStatus === 'saving' ? 'saving…' : 'not saved'}</span>
                 </div>
               </div>
               <span className="block-total">{selectedBlocks.length} blocks included</span>
             </div>
             <div className="paper-surround">
-              <ResumePreview profile={state.profile} blocks={selectedBlocks} compact={compact} onRemoveBlock={toggleBlock} />
+              <ResumePreview profile={state.profile} blocks={selectedBlocks} compact={state.compact} onRemoveBlock={toggleBlock} />
             </div>
             <p className="canvas-caption"><Icon name="check" size={14} /> Your preview updates as you edit your resume.</p>
           </section>
           <BuilderTools
-            compact={compact}
-            onCompactChange={setCompact}
-            onReset={() => { selectPreset(activePreset); setCompact(false) }}
+            compact={state.compact}
+            onCompactChange={(compact) => dispatch({ type: 'setCompact', compact })}
+            onReset={() => { selectPreset(activePreset); dispatch({ type: 'setCompact', compact: false }) }}
             onEditProfile={() => setEditor({ type: 'profile' })}
           />
         </div>

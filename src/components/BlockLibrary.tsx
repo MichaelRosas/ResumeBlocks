@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { blockLabels } from '../types'
 import type { ResumeBlock, ResumePreset } from '../types'
+import type { SaveStatus } from '../state/workspaceStorage'
 import { Icon } from './Icon'
 
 interface BlockLibraryProps {
@@ -12,9 +13,10 @@ interface BlockLibraryProps {
   onSelectPreset: (preset: ResumePreset) => void
   onCreateBlock: () => void
   onEditBlock: (block: ResumeBlock) => void
+  saveStatus: SaveStatus
 }
 
-export function BlockLibrary({ blocks, selectedIds, presets, activePresetId, onToggleBlock, onSelectPreset, onCreateBlock, onEditBlock }: BlockLibraryProps) {
+export function BlockLibrary({ blocks, selectedIds, presets, activePresetId, onToggleBlock, onSelectPreset, onCreateBlock, onEditBlock, saveStatus }: BlockLibraryProps) {
   const [search, setSearch] = useState('')
   const query = search.trim().toLowerCase()
   const filteredBlocks = blocks.filter((block) =>
@@ -57,7 +59,13 @@ export function BlockLibrary({ blocks, selectedIds, presets, activePresetId, onT
           {presets.map((preset) => <button key={preset.id} type="button" className={`preset ${preset.id === activePresetId ? 'is-active' : ''}`} aria-pressed={preset.id === activePresetId} onClick={() => onSelectPreset(preset)}><Icon name="file" size={20} /><span><strong>{preset.name}</strong><small>{preset.description}</small></span><Icon name="chevron" size={15} /></button>)}
         </div>
       </section>
-      <div className="library-footer"><span className="status-dot" /><span>Temporary workspace<small>Changes reset when you refresh.</small></span></div>
+      <div className={`library-footer save-status-${saveStatus}`} role="status">
+        <span className="status-dot" />
+        <span>
+          {saveStatus === 'saved' ? 'Saved in this browser' : saveStatus === 'saving' ? 'Saving changes…' : 'Changes not saved'}
+          <small>{saveStatus === 'blocked' || saveStatus === 'error' ? 'Keep this page open and retry saving.' : 'Available in this browser only.'}</small>
+        </span>
+      </div>
     </aside>
   )
 }
