@@ -3,6 +3,7 @@ import { DragDropProvider } from '@dnd-kit/react'
 import type { DragEndEvent } from '@dnd-kit/react'
 import { isSortable } from '@dnd-kit/react/sortable'
 import { BlockEditor } from './components/BlockEditor'
+import { ExportDialog } from './components/ExportDialog'
 import { BlockLibrary } from './components/BlockLibrary'
 import { BuilderTools } from './components/BuilderTools'
 import { Icon } from './components/Icon'
@@ -10,12 +11,19 @@ import { ProfileEditor } from './components/ProfileEditor'
 import { PresetEditor } from './components/PresetEditor'
 import { PresetSwitchDialog } from './components/PresetSwitchDialog'
 import { ResumePreview } from './components/ResumePreview'
+import { PageFitNotice } from './components/PageFitNotice'
+import { PrintResume } from './components/PrintResume'
+import type { PageFit } from './components/PrintResume'
 import { StorageNotice } from './components/StorageNotice'
+import { TailoringDialog } from './components/TailoringDialog'
 import { useWorkspace } from './state/useWorkspace'
+import { usePrintTitle } from './state/usePrintTitle'
 import type { ResumeBlock, ResumePreset, ResumeProfile } from './types'
 
 type Editor = { type: 'block'; block: ResumeBlock | null } | { type: 'profile' }
   | { type: 'preset'; preset: ResumePreset | null }
+  | { type: 'export' }
+  | { type: 'tailor' }
   | { type: 'switch-preset'; target: ResumePreset; restore: boolean } | null
 
 export default function App() {
@@ -23,7 +31,9 @@ export default function App() {
   const [announcement, setAnnouncement] = useState('')
   const [editor, setEditor] = useState<Editor>(null)
   const [activeDrag, setActiveDrag] = useState<{ block: ResumeBlock; fromResume: boolean } | null>(null)
+  const [pageFit, setPageFit] = useState<PageFit>('measuring')
   const activePreset = state.presets.find((preset) => preset.id === state.presetId)
+  usePrintTitle(`${state.profile.name} - ${activePreset?.name ?? 'Resume'}`)
   const selectedBlocks = state.selectedIds.flatMap((id) => {
     const block = state.resumeBlocks.find((item) => item.id === id)
     return block ? [block] : []
@@ -161,6 +171,7 @@ export default function App() {
               </div>
               <span className="block-total">{selectedBlocks.length} blocks included</span>
             </div>
+            <PageFitNotice fit={pageFit} compact={state.compact} />
             <div className="paper-surround">
               <ResumePreview profile={state.profile} blocks={selectedBlocks} compact={state.compact} onRemoveBlock={toggleBlock} onMoveBlock={placeBlock} activeBlock={activeDrag?.block ?? null} />
             </div>
@@ -174,6 +185,10 @@ export default function App() {
             onCreatePreset={() => setEditor({ type: 'preset', preset: null })}
             onUpdatePreset={updatePreset}
             canUpdatePreset={!!activePreset && state.modified}
+            onExport={() => setEditor({ type: 'export' })}
+            canExport={selectedBlocks.length > 0 && !activeDrag}
+            onTailor={() => setEditor({ type: 'tailor' })}
+            canTailor={(state.blocks.length > 0 || selectedBlocks.length > 0) && !activeDrag}
           />
         </div>
         <p className="screen-reader-only" role="status" aria-live="polite">{announcement}</p>
@@ -188,6 +203,17 @@ export default function App() {
         />
       )}
       {editor?.type === 'profile' && <ProfileEditor profile={state.profile} onSave={saveProfile} onClose={() => setEditor(null)} />}
+      {editor?.type === 'export' && <ExportDialog fit={pageFit} onPrint={() => window.print()} onClose={() => setEditor(null)} />}
+      {editor?.type === 'tailor' && <TailoringDialog
+        blocks={[...selectedBlocks, ...state.blocks.filter((block) => !state.selectedIds.includes(block.id))]}
+        currentBlocks={selectedBlocks}
+        onApply={(ids) => {
+          dispatch({ type: 'applyTailoring', ids })
+          setEditor(null)
+          setAnnouncement(`Tailored selection applied with ${ids.length} blocks. Saved presets keep their versions.`)
+        }}
+        onClose={() => setEditor(null)}
+      />}
       {editor?.type === 'preset' && <PresetEditor
         preset={editor.preset}
         presets={state.presets}
@@ -210,6 +236,7 @@ export default function App() {
         onClose={() => setEditor(null)}
       />}
     </div>
+    <PrintResume profile={state.profile} blocks={selectedBlocks} compact={state.compact} onPageFitChange={setPageFit} />
     </DragDropProvider>
   )
 }

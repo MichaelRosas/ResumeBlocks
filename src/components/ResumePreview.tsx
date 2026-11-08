@@ -3,6 +3,7 @@ import { useSortable } from '@dnd-kit/react/sortable'
 import type { BlockType, ResumeBlock, ResumeProfile } from '../types'
 import { blockLabels } from '../types'
 import { Icon } from './Icon'
+import { ResumeBlockContent, ResumeHeader } from './ResumeDocument'
 
 interface ResumePreviewProps {
   profile: ResumeProfile
@@ -38,11 +39,7 @@ function SortableResumeBlock({ block, index, count, onRemove, onMove }: {
         <button type="button" aria-label={`Move ${block.title} down`} title="Move down" disabled={index === count - 1} onClick={() => onMove(index + 1)}><Icon name="down" size={14} /></button>
         <button type="button" onClick={onRemove} aria-label={`Remove ${block.title} from resume`} title="Remove from resume; keep in library"><Icon name="close" size={13} /></button>
       </div>
-      <div className="resume-block-heading"><h4>{block.title}</h4>{block.date && <span>{block.date}</span>}</div>
-      {block.type !== 'skills' && block.subtitle && <p className="resume-subtitle">{block.subtitle}</p>}
-      {block.type === 'skills'
-        ? <div className="resume-skills">{block.bullets.map((bullet, bulletIndex) => <p key={bulletIndex}>{bullet}</p>)}</div>
-        : block.bullets.length > 0 && <ul>{block.bullets.map((bullet, bulletIndex) => <li key={bulletIndex}>{bullet}</li>)}</ul>}
+      <ResumeBlockContent block={block} />
     </div>
   )
 }
@@ -82,15 +79,7 @@ export function ResumePreview({ profile, blocks, compact, onRemoveBlock, onMoveB
 
   return (
     <article ref={ref} className={`resume-page ${compact ? 'is-compact' : ''} ${isDropTarget ? 'is-page-drop-target' : ''}`} aria-label="Resume preview">
-      <header className="resume-header">
-        <h2>{profile.name}</h2>
-        {profile.headline && <p className="resume-headline">{profile.headline}</p>}
-        {[profile.email, profile.location, profile.website].some(Boolean) && (
-          <p className="resume-contact">
-            {[profile.email, profile.location, profile.website].filter(Boolean).map((contact, index) => <span key={index}>{contact}</span>)}
-          </p>
-        )}
-      </header>
+      <ResumeHeader profile={profile} />
       {(['education', 'experience', 'project', 'skills'] as const).map((type) => {
         const sectionBlocks = blocks.filter((block) => block.type === type)
         if (sectionBlocks.length === 0 && activeBlock?.type !== type) return null

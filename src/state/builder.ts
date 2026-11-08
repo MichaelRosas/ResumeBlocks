@@ -26,6 +26,7 @@ export type BuilderAction =
   | { type: 'updatePreset' }
   | { type: 'renamePreset'; id: string; name: string; description: string }
   | { type: 'deletePreset'; id: string }
+  | { type: 'applyTailoring'; ids: string[] }
 
 export function markPresetChanges(state: BuilderState): BuilderState {
   return { ...state, modified: hasPresetChanges(captureResume(state), state.presets.find((preset) => preset.id === state.presetId)) }
@@ -58,6 +59,22 @@ function removeFromResume(state: BuilderState, id: string): BuilderState {
 
 export function builderReducer(state: BuilderState, action: BuilderAction): BuilderState {
   switch (action.type) {
+    case 'applyTailoring': {
+      if (!action.ids.length || new Set(action.ids).size !== action.ids.length) return state
+      const selected = action.ids.flatMap((id) => {
+        // Prefer the working snapshot if the library has a different version.
+        const block = state.resumeBlocks.find((item) => item.id === id) ?? state.blocks.find((item) => item.id === id)
+        return block ? [copyBlock(block)] : []
+      })
+      if (selected.length !== action.ids.length) return state
+      return markPresetChanges({
+        ...state,
+        // Preserve blocks originating in an older preset when they leave the draft.
+        blocks: [...state.blocks, ...state.resumeBlocks.filter((block) => !action.ids.includes(block.id) && !state.blocks.some((item) => item.id === block.id)).map(copyBlock)],
+        resumeBlocks: selected,
+        selectedIds: [...action.ids],
+      })
+    }
     case 'selectPreset': {
       const preset = state.presets.find((item) => item.id === action.id)
       if (!preset) return state

@@ -7,9 +7,10 @@ interface EditorDialogProps {
   description: string
   onClose: () => void
   children: ReactNode
+  className?: string
 }
 
-export function EditorDialog({ title, description, onClose, children }: EditorDialogProps) {
+export function EditorDialog({ title, description, onClose, children, className = '' }: EditorDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const titleId = useId()
   const descriptionId = useId()
@@ -32,7 +33,7 @@ export function EditorDialog({ title, description, onClose, children }: EditorDi
   return (
     <dialog
       ref={dialogRef}
-      className="editor-dialog"
+      className={`editor-dialog ${className}`}
       aria-labelledby={titleId}
       aria-describedby={descriptionId}
       onCancel={(event) => { event.preventDefault(); onClose() }}

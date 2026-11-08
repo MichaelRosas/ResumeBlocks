@@ -1,0 +1,52 @@
+/* Shared, fixed-size typography for measurement and printing. */
+.print-output {
+  position: fixed;
+  top: 0;
+  left: -10000px;
+  width: 7.5in;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.resume-document {
+  display: flow-root;
+  width: 7.5in;
+  margin: 0;
+  padding: 0;
+  color: #17212b;
+  background: white;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 10pt;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.resume-document .resume-header { margin-bottom: 16pt; text-align: center; }
+.resume-document .resume-header h2 { font-size: 24pt; line-height: 1.1; letter-spacing: .3pt; }
+.resume-document .resume-headline { margin-top: 4pt; font-size: 10pt; }
+.resume-document .resume-contact { margin-top: 6pt; gap: 4pt 7pt; font-size: 8.5pt; }
+.resume-document .resume-contact span + span::before { margin-right: 7pt; }
+.resume-document .resume-section { margin-top: 12pt; }
+.resume-document .resume-section h3 { margin-bottom: 6pt; padding-bottom: 4pt; font-size: 10pt; line-height: 1.35; letter-spacing: 1.3pt; break-after: avoid; }
+.resume-document .resume-block { min-height: 0; margin-top: 8pt; font-size: 10pt; line-height: 1.35; break-inside: avoid; }
+.resume-document .resume-block-heading { gap: 10pt; }
+.resume-document .resume-block-heading h4 { font-size: 11pt; line-height: 1.35; }
+.resume-document .resume-block-heading > span { font-size: 9pt; }
+.resume-document .resume-subtitle { margin-top: 2pt; font-size: 9.5pt; }
+.resume-document .resume-block ul { padding-left: 12pt; margin: 4pt 0 0; }
+.resume-document .resume-block li { padding-left: 2pt; margin-top: 2pt; orphans: 2; widows: 2; }
+.resume-document.is-compact .resume-header { margin-bottom: 10pt; }
+.resume-document.is-compact .resume-section { margin-top: 9pt; }
+.resume-document.is-compact .resume-section h3 { margin-bottom: 4pt; }
+.resume-document.is-compact .resume-block { margin-top: 5pt; line-height: 1.25; }
+
+@page { size: letter; margin: 0.5in; }
+
+@media print {
+  html, body { margin: 0 !important; padding: 0 !important; min-width: 0 !important; background: white !important; }
+  body > :not(#root), #root > :not(.print-output) { display: none !important; }
+  #root { display: block !important; margin: 0 !important; padding: 0 !important; }
+  .print-output { position: static; width: auto; visibility: visible; pointer-events: auto; }
+  .resume-document { width: 100%; }
+  .editor-dialog, dialog::backdrop { display: none !important; }
+}
