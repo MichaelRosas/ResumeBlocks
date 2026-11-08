@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { parseTailoringRequest, parseTailoringResult } from '../src/tailoring.ts'
-import type { TailoringRequest, TailoringResult } from '../src/tailoring.ts'
+import { parseTailoringRequest, parseTailoringResult } from '../src/tailoring.js'
+import type { TailoringRequest, TailoringResult } from '../src/tailoring.js'
 
 class RequestError extends Error {
   status: number

@@ -1,4 +1,4 @@
-import type { ResumeBlock } from './types'
+import type { ResumeBlock } from './types.js'
 
 export const MAX_JOB_DESCRIPTION = 12_000
 export const sectionOrder = ['education', 'experience', 'project', 'skills'] as const

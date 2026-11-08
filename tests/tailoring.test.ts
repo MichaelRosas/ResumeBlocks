@@ -2,8 +2,9 @@ import assert from 'node:assert/strict'
 import { afterEach, mock, test } from 'node:test'
 import { Readable } from 'node:stream'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { generateSuggestions, handleTailoring } from '../server/tailoring.ts'
-import { parseTailoringRequest, parseTailoringResult } from '../src/tailoring.ts'
+import handler from '../api/tailor.js'
+import { generateSuggestions, handleTailoring } from '../server/tailoring.js'
+import { parseTailoringRequest, parseTailoringResult } from '../src/tailoring.js'
 
 const request = {
   jobDescription: 'Seeking a frontend intern to build accessible applications with React and TypeScript.',
@@ -14,7 +15,7 @@ const suggestion = { summary: 'The portal demonstrates React experience.', recom
 const success = () => Response.json({ status: 'completed', output: [{ type: 'message', content: [{ type: 'output_text', text: JSON.stringify(suggestion) }] }] })
 afterEach(() => mock.restoreAll())
 
-async function invoke({ body = request as unknown, raw = false, method = 'POST', headers = {} as Record<string, string>, apiKey = 'test-key' } = {}) {
+async function invoke({ body = request as unknown, raw = false, method = 'POST', headers = {} as Record<string, string>, apiKey = 'test-key', entryPoint = false } = {}) {
   const req = Object.assign(Readable.from(raw ? [body as string] : []), {
     method, headers: { 'content-type': 'application/json', ...headers }, ...(raw ? {} : { body }),
   }) as unknown as IncomingMessage & { body?: unknown }
@@ -25,9 +26,17 @@ async function invoke({ body = request as unknown, raw = false, method = 'POST',
     setHeader(name: string, value: string) { responseHeaders[name] = value },
     end(value: string) { output = value },
   }
-  await handleTailoring(req, res as unknown as ServerResponse, { apiKey })
+  if (entryPoint) await handler(req, res as unknown as ServerResponse)
+  else await handleTailoring(req, res as unknown as ServerResponse, { apiKey })
   return { status: res.statusCode, body: JSON.parse(output), headers: responseHeaders }
 }
+
+test('compiled Vercel entry point loads and serves a request in Node ESM', async () => {
+  const result = await invoke({ method: 'GET', entryPoint: true })
+  assert.equal(result.status, 405)
+  assert.equal(result.headers.Allow, 'POST')
+  assert.match(result.body.error, /Use POST/)
+})
 
 test('request parsing excludes unrelated fields and rejects duplicates or oversized inputs', () => {
   assert.deepEqual(parseTailoringRequest({ ...request, profile: { email: 'private@example.com' } }), request)
