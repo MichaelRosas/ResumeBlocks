@@ -145,18 +145,12 @@ export default function App() {
         onSelectPreset={selectPreset}
         onCreateBlock={() => setEditor({ type: 'block', block: null })}
         onEditBlock={(block) => setEditor({ type: 'block', block })}
-        saveStatus={saveStatus}
         draggingFromResume={activeDrag?.fromResume ?? false}
         onManagePreset={(preset) => setEditor({ type: 'preset', preset })}
       />
       <main id="main-content" className="workspace" tabIndex={-1}>
         <header className="workspace-header">
-          <div>
-            <div className="breadcrumb">WORKSPACE <Icon name="chevron" size={12} /> RESUME BUILDER</div>
-            <h1>Build your next opportunity.</h1>
-            <p>Bring your experience together. One block at a time.</p>
-          </div>
-          <span className={`demo-tag save-status-${saveStatus}`}><span />{saveStatus === 'saved' ? 'Saved in this browser' : saveStatus === 'saving' ? 'Saving changes…' : 'Changes not saved'}</span>
+          <h1>Resume builder</h1>
         </header>
         <StorageNotice status={saveStatus} loadIssue={loadIssue} onRetry={retrySave} onReplace={replaceSavedWorkspace} />
         <div className="builder-layout">
@@ -166,7 +160,7 @@ export default function App() {
                 <Icon name="file" size={19} />
                 <div>
                   <h2 id="resume-name">{activePreset?.name ?? 'Unsaved resume'}</h2>
-                  <span>{state.modified ? 'Draft changes' : 'Matches saved preset'} · {saveStatus === 'saved' ? 'saved in this browser' : saveStatus === 'saving' ? 'saving…' : 'not saved'}</span>
+                  {state.modified && <span>Draft changes</span>}
                 </div>
               </div>
               <span className="block-total">{selectedBlocks.length} blocks included</span>

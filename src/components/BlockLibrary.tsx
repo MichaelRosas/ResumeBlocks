@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useDroppable } from '@dnd-kit/react'
 import { blockLabels } from '../types'
 import type { ResumeBlock, ResumePreset } from '../types'
-import type { SaveStatus } from '../state/workspaceStorage'
 import { Icon } from './Icon'
 import { LibraryBlockCard } from './LibraryBlockCard'
 
@@ -15,12 +14,11 @@ interface BlockLibraryProps {
   onSelectPreset: (preset: ResumePreset) => void
   onCreateBlock: () => void
   onEditBlock: (block: ResumeBlock) => void
-  saveStatus: SaveStatus
   draggingFromResume: boolean
   onManagePreset: (preset: ResumePreset) => void
 }
 
-export function BlockLibrary({ blocks, selectedIds, presets, activePresetId, onToggleBlock, onSelectPreset, onCreateBlock, onEditBlock, saveStatus, draggingFromResume, onManagePreset }: BlockLibraryProps) {
+export function BlockLibrary({ blocks, selectedIds, presets, activePresetId, onToggleBlock, onSelectPreset, onCreateBlock, onEditBlock, draggingFromResume, onManagePreset }: BlockLibraryProps) {
   const [search, setSearch] = useState('')
   const { ref, isDropTarget } = useDroppable({
     id: 'block-library',
@@ -36,11 +34,10 @@ export function BlockLibrary({ blocks, selectedIds, presets, activePresetId, onT
     <aside ref={ref} className={`library ${isDropTarget ? 'is-library-drop-target' : ''}`} aria-label="Block library and presets">
       <a className="brand" href="#main-content" aria-label="ResumeBlocks, skip to builder">
         <span className="brand-mark"><Icon name="blocks" size={23} /></span>
-        <span>Resume<span className="brand-light">Blocks</span><small>YOUR EXPERIENCE, REASSEMBLED.</small></span>
+        <span>Resume<span className="brand-light">Blocks</span></span>
       </a>
 
       <div className="library-heading"><h2>Stored blocks</h2><span className="count">{blocks.length}</span></div>
-      <p className="library-intro">Your experience. Ready to reuse.</p>
       <label className="search-field"><Icon name="search" size={17} /><input type="search" aria-label="Search blocks" placeholder="Search your blocks…" value={search} onChange={(event) => setSearch(event.target.value)} /></label>
       <button type="button" className="add-block-button" data-editor-fallback onClick={() => { setSearch(''); onCreateBlock() }}><Icon name="plus" size={17} /> Add new block</button>
       {draggingFromResume && <p className="library-drop-hint">Drop here to remove from the resume and keep in your library.</p>}
@@ -66,13 +63,6 @@ export function BlockLibrary({ blocks, selectedIds, presets, activePresetId, onT
           {presets.length === 0 && <p className="no-results">No saved presets yet. Use Save as new to keep this resume.</p>}
         </div>
       </section>
-      <div className={`library-footer save-status-${saveStatus}`} role="status">
-        <span className="status-dot" />
-        <span>
-          {saveStatus === 'saved' ? 'Saved in this browser' : saveStatus === 'saving' ? 'Saving changes…' : 'Changes not saved'}
-          <small>{saveStatus === 'blocked' || saveStatus === 'error' ? 'Keep this page open and retry saving.' : 'Available in this browser only.'}</small>
-        </span>
-      </div>
     </aside>
   )
 }
