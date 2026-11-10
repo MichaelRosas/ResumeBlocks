@@ -40,7 +40,7 @@ function isBlock(value: unknown): value is ResumeBlock {
 
 function isProfile(value: unknown): value is ResumeProfile {
   return isRecord(value)
-    && isNonEmptyString(value.name)
+    && typeof value.name === 'string'
     && typeof value.headline === 'string'
     && typeof value.email === 'string'
     && typeof value.location === 'string'

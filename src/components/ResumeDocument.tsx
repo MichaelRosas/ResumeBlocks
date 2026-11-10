@@ -4,9 +4,10 @@ import { blockLabels } from '../types'
 
 export function ResumeHeader({ profile }: { profile: ResumeProfile }) {
   const contacts = [profile.email, profile.location, profile.website].filter(Boolean)
+  if (!profile.name && !profile.headline && contacts.length === 0) return null
   return (
     <header className="resume-header">
-      <h2>{profile.name}</h2>
+      {profile.name && <h2>{profile.name}</h2>}
       {profile.headline && <p className="resume-headline">{profile.headline}</p>}
       {contacts.length > 0 && <p className="resume-contact">{contacts.map((contact, index) => <span key={index}>{contact}</span>)}</p>}
     </header>

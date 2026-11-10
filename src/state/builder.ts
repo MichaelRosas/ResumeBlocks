@@ -1,4 +1,3 @@
-import { sampleBlocks, samplePresets, sampleProfile } from '../data/sampleResume'
 import type { ResumeBlock, ResumePreset, ResumeProfile } from '../types'
 import { captureResume, copyBlock, hasPresetChanges, isPresetNameAvailable } from './resumeSnapshots'
 
@@ -34,12 +33,12 @@ export function markPresetChanges(state: BuilderState): BuilderState {
 
 export function createInitialState(): BuilderState {
   return {
-    blocks: sampleBlocks.map(copyBlock),
-    resumeBlocks: samplePresets[0].blocks.map(copyBlock),
-    profile: { ...sampleProfile },
-    presets: samplePresets.map((preset) => ({ ...preset, blocks: preset.blocks.map(copyBlock), profile: { ...preset.profile } })),
-    presetId: samplePresets[0].id,
-    selectedIds: samplePresets[0].blocks.map((block) => block.id),
+    blocks: [],
+    resumeBlocks: [],
+    profile: { name: '', headline: '', email: '', location: '', website: '' },
+    presets: [],
+    presetId: null,
+    selectedIds: [],
     compact: false,
     modified: false,
   }

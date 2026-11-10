@@ -21,7 +21,8 @@ export function captureResume(state: {
 }
 
 export function hasPresetChanges(snapshot: ResumeSnapshot, preset: ResumePreset | undefined): boolean {
-  if (!preset || snapshot.compact !== preset.compact || snapshot.blocks.length !== preset.blocks.length) return true
+  if (!preset) return snapshot.blocks.length > 0 || snapshot.compact || Object.values(snapshot.profile).some((value) => value.trim().length > 0)
+  if (snapshot.compact !== preset.compact || snapshot.blocks.length !== preset.blocks.length) return true
   if ((Object.keys(snapshot.profile) as (keyof ResumeProfile)[]).some((key) => snapshot.profile[key] !== preset.profile[key])) return true
   return snapshot.blocks.some((block, index) => {
     const saved = preset.blocks[index]
