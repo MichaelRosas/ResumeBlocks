@@ -36,6 +36,7 @@ function isBlock(value: unknown): value is ResumeBlock {
     && isNonEmptyString(value.title)
     && typeof value.subtitle === 'string'
     && (value.date === undefined || typeof value.date === 'string')
+    && (value.contentFormat === undefined || value.contentFormat === 'bullets' || value.contentFormat === 'paragraphs')
     && isStringArray(value.bullets)
 }
 

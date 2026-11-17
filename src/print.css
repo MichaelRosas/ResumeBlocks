@@ -31,6 +31,9 @@
 .resume-document .resume-subtitle { margin-top: 2pt; font-size: var(--resume-subtitle-size); }
 .resume-document .resume-block ul { padding-left: 12pt; margin: 4pt 0 0; }
 .resume-document .resume-block li { padding-left: 2pt; margin-top: 2pt; orphans: 2; widows: 2; }
+.resume-paragraphs p { white-space: pre-line; }
+.resume-document .resume-paragraphs:not(.resume-skills) { margin-top: 4pt; }
+.resume-document .resume-paragraphs:not(.resume-skills) p + p { margin-top: 4pt; }
 
 @page { size: letter; margin: 0.5in; }
 @media print {

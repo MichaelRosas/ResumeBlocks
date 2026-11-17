@@ -1,4 +1,5 @@
 export type BlockType = 'education' | 'experience' | 'project' | 'skills'
+export type BlockContentFormat = 'bullets' | 'paragraphs'
 
 export interface ResumeBlock {
   id: string
@@ -7,6 +8,11 @@ export interface ResumeBlock {
   subtitle: string
   date?: string
   bullets: string[]
+  contentFormat?: BlockContentFormat
+}
+
+export function getBlockContentFormat(block: Pick<ResumeBlock, 'type' | 'contentFormat'>): BlockContentFormat {
+  return block.contentFormat ?? (block.type === 'skills' ? 'paragraphs' : 'bullets')
 }
 
 export interface ResumeProfile {

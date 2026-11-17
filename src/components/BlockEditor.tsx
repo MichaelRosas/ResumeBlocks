@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import type { BlockType, ResumeBlock } from '../types'
+import type { BlockContentFormat, BlockType, ResumeBlock } from '../types'
+import { getBlockContentFormat } from '../types'
 import { EditorDialog } from './EditorDialog'
 import { Icon } from './Icon'
 
@@ -24,12 +25,15 @@ export function BlockEditor({ block, included, onSave, onDelete, onClose }: Bloc
   const [title, setTitle] = useState(block?.title ?? '')
   const [subtitle, setSubtitle] = useState(block?.subtitle ?? '')
   const [date, setDate] = useState(block?.date ?? '')
+  const [contentFormat, setContentFormat] = useState<BlockContentFormat | undefined>(block?.contentFormat)
   const [bullets, setBullets] = useState(() => (block?.bullets.length ? block.bullets : [''])
     .map((text) => ({ id: crypto.randomUUID(), text })))
   const [includeInResume, setIncludeInResume] = useState(included)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [error, setError] = useState('')
   const labels = fieldLabels[type]
+  const format = getBlockContentFormat({ type, contentFormat })
+  const itemLabel = format === 'bullets' ? 'Bullet' : type === 'skills' ? 'Skill line' : 'Paragraph'
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -46,6 +50,7 @@ export function BlockEditor({ block, included, onSave, onDelete, onClose }: Bloc
       subtitle: subtitle.trim(),
       date: type === 'skills' ? undefined : date.trim() || undefined,
       bullets: bullets.map((bullet) => bullet.text.trim()).filter(Boolean),
+      contentFormat: format,
     }, includeInResume)
   }
 
@@ -81,15 +86,23 @@ export function BlockEditor({ block, included, onSave, onDelete, onClose }: Bloc
             </label>
           )}
 
+          <label className="form-field">
+            Content format
+            <select value={format} onChange={(event) => setContentFormat(event.target.value as BlockContentFormat)}>
+              <option value="bullets">Bullet points</option>
+              <option value="paragraphs">Plain text</option>
+            </select>
+          </label>
+
           <fieldset className="bullet-fields">
-            <legend>{type === 'skills' ? 'Skill lines' : 'Bullet points'}</legend>
-            <p className="field-help">{type === 'skills' ? 'Use a line for each group, such as Languages or Tools.' : 'Describe what you did, built, or learned. Blank bullet points are omitted.'}</p>
+            <legend>{format === 'bullets' ? 'Bullet points' : type === 'skills' ? 'Skill lines' : 'Paragraphs'}</legend>
+            <p className="field-help">{format === 'bullets' ? 'Describe what you did, built, or learned. Blank points are omitted.' : type === 'skills' ? 'Use a line for each group, such as Languages or Tools.' : 'Write normal text without bullet points. Line breaks are preserved.'}</p>
             {bullets.map((bullet, index) => (
               <div className="bullet-field" key={bullet.id}>
                 <label className="form-field">
-                  {type === 'skills' ? 'Skill line' : 'Bullet'} {index + 1}
+                  {itemLabel} {index + 1}
                   <textarea
-                    rows={2}
+                    rows={format === 'paragraphs' ? 4 : 2}
                     maxLength={1000}
                     value={bullet.text}
                     onChange={(event) => setBullets((current) => current.map((item) => item.id === bullet.id ? { ...item, text: event.target.value } : item))}
@@ -98,7 +111,7 @@ export function BlockEditor({ block, included, onSave, onDelete, onClose }: Bloc
                 <button
                   type="button"
                   className="icon-button bullet-remove"
-                  aria-label={`Remove ${type === 'skills' ? 'skill line' : 'bullet'} ${index + 1}`}
+                  aria-label={`Remove ${itemLabel.toLowerCase()} ${index + 1}`}
                   onClick={() => setBullets((current) => current.filter((item) => item.id !== bullet.id))}
                 ><Icon name="close" size={17} /></button>
               </div>
@@ -107,7 +120,7 @@ export function BlockEditor({ block, included, onSave, onDelete, onClose }: Bloc
               type="button"
               className="text-button"
               onClick={() => setBullets((current) => [...current, { id: crypto.randomUUID(), text: '' }])}
-            ><Icon name="plus" size={16} /> {type === 'skills' ? 'Add skill line' : 'Add bullet point'}</button>
+            ><Icon name="plus" size={16} /> {format === 'bullets' ? 'Add bullet point' : type === 'skills' ? 'Add skill line' : 'Add paragraph'}</button>
           </fieldset>
 
           <label className="checkbox-field">

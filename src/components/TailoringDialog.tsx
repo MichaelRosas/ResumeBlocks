@@ -6,6 +6,7 @@ import type { TailoringResult } from '../tailoring'
 import { blockLabels } from '../types'
 import type { ResumeBlock } from '../types'
 import { copyBlock } from '../state/resumeSnapshots'
+import { ResumeBlockBody } from './ResumeDocument'
 
 interface Props {
   blocks: ResumeBlock[]
@@ -129,7 +130,7 @@ export function TailoringDialog({ blocks, currentBlocks, onApply, onClose }: Pro
                       <label className="checkbox-field"><input type="checkbox" checked={checked} onChange={() => setIncluded((ids) => checked ? ids.filter((id) => id !== block.id) : [...ids, block.id])} /><strong>{block.title}</strong></label>
                       <span className="tailoring-badge">{note ? 'Suggested' : 'Other available block'} · {wasIncluded ? 'In current resume' : 'From library'}</span>
                       <p>{note?.reason ?? 'Not selected by AI. Include it if it adds relevant context.'}</p>
-                      <details><summary>View original text</summary><p>{block.subtitle}{block.date ? ` · ${block.date}` : ''}</p><ul>{block.bullets.map((bullet, index) => <li key={index}>{bullet}</li>)}</ul></details>
+                      <details><summary>View original text</summary><p>{block.subtitle}{block.date ? ` · ${block.date}` : ''}</p><ResumeBlockBody block={block} /></details>
                     </div>
                   })}</fieldset>
                 })}

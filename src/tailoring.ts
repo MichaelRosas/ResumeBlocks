@@ -34,6 +34,7 @@ export function parseTailoringRequest(value: unknown): TailoringRequest {
     if (!record(block) || !text(block.id, 200) || !sectionOrder.includes(block.type as ResumeBlock['type'])
       || !text(block.title, 500) || !text(block.subtitle, 1000, true)
       || (block.date !== undefined && !text(block.date, 200, true))
+      || (block.contentFormat !== undefined && block.contentFormat !== 'bullets' && block.contentFormat !== 'paragraphs')
       || !Array.isArray(block.bullets) || block.bullets.length > 50
       || !block.bullets.every((bullet: unknown) => text(bullet, 4000, true))) {
       throw new Error('A block is too large or has invalid content. Shorten it before tailoring.')
@@ -42,6 +43,7 @@ export function parseTailoringRequest(value: unknown): TailoringRequest {
       id: block.id, type: block.type as ResumeBlock['type'], title: block.title,
       subtitle: block.subtitle, ...(block.date === undefined ? {} : { date: block.date as string }),
       bullets: [...block.bullets] as string[],
+      ...(block.contentFormat === undefined ? {} : { contentFormat: block.contentFormat as ResumeBlock['contentFormat'] }),
     }
   })
   const ids = new Set(blocks.map((block) => block.id))

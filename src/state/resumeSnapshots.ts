@@ -1,5 +1,6 @@
 import type { ResumeBlock, ResumeFormatting, ResumePreset, ResumeProfile, ResumeSnapshot } from '../types.js'
 import { sameFormatting, standardFormatting } from '../formatting.js'
+import { getBlockContentFormat } from '../types.js'
 
 export function copyBlock(block: ResumeBlock): ResumeBlock {
   return { ...block, bullets: [...block.bullets] }
@@ -29,6 +30,7 @@ export function hasPresetChanges(snapshot: ResumeSnapshot, preset: ResumePreset 
     const saved = preset.blocks[index]
     return block.id !== saved.id || block.type !== saved.type || block.title !== saved.title
       || block.subtitle !== saved.subtitle || block.date !== saved.date
+      || getBlockContentFormat(block) !== getBlockContentFormat(saved)
       || block.bullets.length !== saved.bullets.length
       || block.bullets.some((bullet, bulletIndex) => bullet !== saved.bullets[bulletIndex])
   })

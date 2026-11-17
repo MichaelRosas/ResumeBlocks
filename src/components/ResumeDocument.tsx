@@ -1,6 +1,6 @@
 import type { Ref } from 'react'
 import type { ResumeBlock, ResumeFormatting, ResumeProfile } from '../types'
-import { blockLabels } from '../types'
+import { blockLabels, getBlockContentFormat } from '../types'
 import { resumeStyles } from './resumeStyles'
 
 export function ResumeHeader({ profile }: { profile: ResumeProfile }) {
@@ -15,14 +15,19 @@ export function ResumeHeader({ profile }: { profile: ResumeProfile }) {
   )
 }
 
+export function ResumeBlockBody({ block }: { block: ResumeBlock }) {
+  if (!block.bullets.length) return null
+  return getBlockContentFormat(block) === 'paragraphs'
+    ? <div className={`resume-paragraphs${block.type === 'skills' ? ' resume-skills' : ''}`}>{block.bullets.map((paragraph, index) => <p key={index}>{paragraph}</p>)}</div>
+    : <ul>{block.bullets.map((bullet, index) => <li key={index}>{bullet}</li>)}</ul>
+}
+
 export function ResumeBlockContent({ block }: { block: ResumeBlock }) {
   return (
     <>
       <div className="resume-block-heading"><h4>{block.title}</h4>{block.date && <span>{block.date}</span>}</div>
       {block.type !== 'skills' && block.subtitle && <p className="resume-subtitle">{block.subtitle}</p>}
-      {block.type === 'skills'
-        ? <div className="resume-skills">{block.bullets.map((bullet, index) => <p key={index}>{bullet}</p>)}</div>
-        : block.bullets.length > 0 && <ul>{block.bullets.map((bullet, index) => <li key={index}>{bullet}</li>)}</ul>}
+      <ResumeBlockBody block={block} />
     </>
   )
 }
