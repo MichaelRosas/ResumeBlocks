@@ -28,7 +28,7 @@ export function PresetEditor({ preset, presets, onSave, onDelete, onClose }: {
   }
 
   return (
-    <EditorDialog title={preset ? 'Manage preset' : 'Save as new preset'} description={preset ? 'Rename this saved version or remove it from your presets.' : 'Save a separate copy of the current content, contact details, order, and spacing.'} onClose={onClose}>
+    <EditorDialog title={preset ? 'Manage preset' : 'Save as new preset'} description={preset ? 'Rename this saved version or remove it from your presets.' : 'Save a separate copy of the current content, contact details, order, and formatting.'} onClose={onClose}>
       <form className="editor-form" onSubmit={handleSubmit}>
         <div className="editor-fields">
           <label className="form-field">

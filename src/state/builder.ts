@@ -1,5 +1,7 @@
-import type { ResumeBlock, ResumePreset, ResumeProfile } from '../types'
-import { captureResume, copyBlock, hasPresetChanges, isPresetNameAvailable } from './resumeSnapshots'
+import type { ResumeBlock, ResumeFormatting, ResumePreset, ResumeProfile } from '../types.js'
+import { isFormatting, standardFormatting } from '../formatting.js'
+import { captureResume, copyBlock, hasPresetChanges, isPresetNameAvailable } from './resumeSnapshots.js'
+import { createSampleData } from '../data/sampleResume.js'
 
 export interface BuilderState {
   blocks: ResumeBlock[]
@@ -8,7 +10,7 @@ export interface BuilderState {
   presets: ResumePreset[]
   presetId: string | null
   selectedIds: string[]
-  compact: boolean
+  formatting: ResumeFormatting
   modified: boolean
 }
 
@@ -18,7 +20,7 @@ export type BuilderAction =
   | { type: 'saveBlock'; block: ResumeBlock; includeInResume: boolean }
   | { type: 'deleteBlock'; id: string }
   | { type: 'saveProfile'; profile: ResumeProfile }
-  | { type: 'setCompact'; compact: boolean }
+  | { type: 'setFormatting'; formatting: ResumeFormatting }
   | { type: 'placeBlock'; id: string; index: number }
   | { type: 'removeBlock'; id: string }
   | { type: 'createPreset'; id: string; name: string; description: string }
@@ -26,6 +28,7 @@ export type BuilderAction =
   | { type: 'renamePreset'; id: string; name: string; description: string }
   | { type: 'deletePreset'; id: string }
   | { type: 'applyTailoring'; ids: string[] }
+  | { type: 'loadSampleData' }
 
 export function markPresetChanges(state: BuilderState): BuilderState {
   return { ...state, modified: hasPresetChanges(captureResume(state), state.presets.find((preset) => preset.id === state.presetId)) }
@@ -39,7 +42,7 @@ export function createInitialState(): BuilderState {
     presets: [],
     presetId: null,
     selectedIds: [],
-    compact: false,
+    formatting: { ...standardFormatting },
     modified: false,
   }
 }
@@ -58,6 +61,29 @@ function removeFromResume(state: BuilderState, id: string): BuilderState {
 
 export function builderReducer(state: BuilderState, action: BuilderAction): BuilderState {
   switch (action.type) {
+    case 'loadSampleData': {
+      const sample = createSampleData()
+      const newBlocks = sample.blocks.filter((block) => !state.blocks.some((item) => item.id === block.id) && !state.resumeBlocks.some((item) => item.id === block.id))
+      const presets = [...state.presets]
+      for (const preset of sample.presets) {
+        if (presets.some((item) => item.id === preset.id)) continue
+        let name = preset.name
+        let suffix = 2
+        while (!isPresetNameAvailable(presets, name)) name = `${preset.name} (${suffix++})`
+        presets.push({ ...preset, name })
+      }
+      if (!newBlocks.length && presets.length === state.presets.length) return state
+      const hasContent = state.blocks.length > 0 || state.resumeBlocks.length > 0 || state.presets.length > 0
+        || Object.values(state.profile).some((value) => value.trim().length > 0)
+      const next = { ...state, blocks: [...state.blocks, ...newBlocks], presets }
+      if (hasContent) return next
+      // Empty workspaces open the sample; existing drafts can open it from presets.
+      const general = sample.presets[0]
+      return markPresetChanges({
+        ...next, profile: { ...sample.profile }, presetId: general.id,
+        resumeBlocks: general.blocks.map(copyBlock), selectedIds: general.blocks.map((block) => block.id),
+      })
+    }
     case 'applyTailoring': {
       if (!action.ids.length || new Set(action.ids).size !== action.ids.length) return state
       const selected = action.ids.flatMap((id) => {
@@ -83,7 +109,7 @@ export function builderReducer(state: BuilderState, action: BuilderAction): Buil
         selectedIds: preset.blocks.map((block) => block.id),
         resumeBlocks: preset.blocks.map(copyBlock),
         profile: { ...preset.profile },
-        compact: preset.compact,
+        formatting: { ...preset.formatting },
         modified: false,
       }
     }
@@ -144,8 +170,8 @@ export function builderReducer(state: BuilderState, action: BuilderAction): Buil
       })
     case 'saveProfile':
       return markPresetChanges({ ...state, profile: { ...action.profile } })
-    case 'setCompact':
-      return markPresetChanges({ ...state, compact: action.compact })
+    case 'setFormatting':
+      return isFormatting(action.formatting) ? markPresetChanges({ ...state, formatting: { ...action.formatting } }) : state
     case 'createPreset': {
       if (state.presets.some((preset) => preset.id === action.id) || !isPresetNameAvailable(state.presets, action.name)) return state
       const preset: ResumePreset = { id: action.id, name: action.name.trim(), description: action.description.trim(), ...captureResume(state) }

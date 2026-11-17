@@ -19,6 +19,7 @@ import { TailoringDialog } from './components/TailoringDialog'
 import { useWorkspace } from './state/useWorkspace'
 import { usePrintTitle } from './state/usePrintTitle'
 import type { ResumeBlock, ResumePreset, ResumeProfile } from './types'
+import { samplePresetIds } from './data/sampleResume'
 
 type Editor = { type: 'block'; block: ResumeBlock | null } | { type: 'profile' }
   | { type: 'preset'; preset: ResumePreset | null }
@@ -147,6 +148,11 @@ export default function App() {
         onEditBlock={(block) => setEditor({ type: 'block', block })}
         draggingFromResume={activeDrag?.fromResume ?? false}
         onManagePreset={(preset) => setEditor({ type: 'preset', preset })}
+        canLoadSampleData={!samplePresetIds.every((id) => state.presets.some((preset) => preset.id === id))}
+        onLoadSampleData={() => {
+          dispatch({ type: 'loadSampleData' })
+          setAnnouncement('Sample blocks and presets loaded.')
+        }}
       />
       <main id="main-content" className="workspace" tabIndex={-1}>
         <header className="workspace-header">
@@ -165,15 +171,15 @@ export default function App() {
               </div>
               <span className="block-total">{selectedBlocks.length} blocks included</span>
             </div>
-            <PageFitNotice fit={pageFit} compact={state.compact} />
+            <PageFitNotice fit={pageFit} formatting={state.formatting} />
             <div className="paper-surround">
-              <ResumePreview profile={state.profile} blocks={selectedBlocks} compact={state.compact} onRemoveBlock={toggleBlock} onMoveBlock={placeBlock} activeBlock={activeDrag?.block ?? null} />
+              <ResumePreview profile={state.profile} blocks={selectedBlocks} formatting={state.formatting} onRemoveBlock={toggleBlock} onMoveBlock={placeBlock} activeBlock={activeDrag?.block ?? null} />
             </div>
             <p className="canvas-caption"><Icon name="grip" size={14} /> Drag handles to reorder within a section, or use the up/down buttons.</p>
           </section>
           <BuilderTools
-            compact={state.compact}
-            onCompactChange={(compact) => dispatch({ type: 'setCompact', compact })}
+            formatting={state.formatting}
+            onFormattingChange={(formatting) => dispatch({ type: 'setFormatting', formatting })}
             onReset={() => { if (activePreset) setEditor({ type: 'switch-preset', target: activePreset, restore: true }) }}
             onEditProfile={() => setEditor({ type: 'profile' })}
             onCreatePreset={() => setEditor({ type: 'preset', preset: null })}
@@ -197,7 +203,7 @@ export default function App() {
         />
       )}
       {editor?.type === 'profile' && <ProfileEditor profile={state.profile} onSave={saveProfile} onClose={() => setEditor(null)} />}
-      {editor?.type === 'export' && <ExportDialog fit={pageFit} onPrint={() => window.print()} onClose={() => setEditor(null)} />}
+      {editor?.type === 'export' && <ExportDialog fit={pageFit} pageMargin={state.formatting.pageMargin} onPrint={() => window.print()} onClose={() => setEditor(null)} />}
       {editor?.type === 'tailor' && <TailoringDialog
         blocks={[...selectedBlocks, ...state.blocks.filter((block) => !state.selectedIds.includes(block.id))]}
         currentBlocks={selectedBlocks}
@@ -230,7 +236,7 @@ export default function App() {
         onClose={() => setEditor(null)}
       />}
     </div>
-    <PrintResume profile={state.profile} blocks={selectedBlocks} compact={state.compact} onPageFitChange={setPageFit} />
+    <PrintResume profile={state.profile} blocks={selectedBlocks} formatting={state.formatting} onPageFitChange={setPageFit} />
     </DragDropProvider>
   )
 }

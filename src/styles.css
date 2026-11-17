@@ -57,7 +57,7 @@ h1, h2, h3, h4, p { margin: 0; }
 .document-title span { display: block; margin-top: 4px; color: #7b8e9d; font-size: 9px; }
 .block-total { font-size: 10px; color: #6c8294; white-space: nowrap; }
 .paper-surround { container-type: inline-size; padding: 26px; background: #e2ebf2; border: 1px solid #dce5ec; border-top: 0; border-radius: 0 0 8px 8px; }
-.resume-page { width: 100%; min-width: 0; min-height: max(650px, calc(100cqw * 22 / 17)); padding: 39px 35px; background: white; color: #253443; box-shadow: 0 3px 14px #263d5010; font-family: Georgia, "Times New Roman", serif; overflow-wrap: anywhere; }
+.resume-page { box-shadow: 0 3px 14px #263d5010; }
 .resume-header { text-align: center; margin-bottom: 22px; }
 .resume-header h2 { font-size: 27px; letter-spacing: .4px; font-weight: 600; }
 .resume-headline { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 10px; letter-spacing: .4px; color: #6c7882; margin-top: 6px; }
@@ -72,11 +72,6 @@ h1, h2, h3, h4, p { margin: 0; }
 .resume-subtitle { color: #63727f; font-style: italic; font-size: 10px; margin-top: 2px; }
 .resume-block ul { padding-left: 13px; margin: 5px 0 0; }
 .resume-block li { padding-left: 2px; margin-top: 2px; }
-.is-compact { padding-top: 29px; padding-bottom: 29px; }
-.is-compact .resume-header { margin-bottom: 15px; }
-.is-compact .resume-section { margin-top: 14px; }
-.is-compact .resume-block { margin-top: 8px; line-height: 1.4; }
-.is-compact .resume-section h3 { margin-bottom: 7px; }
 .empty-resume { text-align: center; padding: 75px 10px; color: #74899b; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
 .empty-resume h3 { font-size: 16px; margin-top: 14px; }
 .empty-resume p { font-size: 12px; line-height: 1.7; margin-top: 10px; }
@@ -88,10 +83,14 @@ h1, h2, h3, h4, p { margin: 0; }
 .tailor-button { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; margin-top: 10px; border: 1px solid #c4d8e9; border-radius: 5px; padding: 11px 8px; background: #eef6fd; color: #25649b; font-size: 11px; }
 .tailor-button:hover:not(:disabled) { background: #e0eefb; }
 .tailor-button:disabled { opacity: .5; }
-.layout-tools { padding-top: 18px; }
-.segmented-control { display: flex; padding: 3px; background: #eef3f7; border-radius: 6px; margin-top: 16px; gap: 3px; }
-.segmented-control button { width: 50%; padding: 7px 3px; font-size: 10px; color: #6c8192; background: transparent; border: 1px solid transparent; border-radius: 4px; }
-.segmented-control button[aria-pressed="true"] { background: white; color: #2477cc; border-color: #d8e5f0; box-shadow: 0 1px 3px #263d500a; }
+.formatting-fields { display: grid; gap: 13px; margin-top: 17px; }
+.formatting-fields .form-field { font-size: 11px; }
+.formatting-fields select { font-size: 12px; padding: 8px 7px; margin-top: 6px; }
+.reset-formatting-button { width: 100%; margin-top: 17px; padding: 8px; background: white; border: 1px solid #cbdbe7; border-radius: 5px; font-size: 11px; color: #3f6079; }
+.reset-formatting-button:hover:not(:disabled) { background: #edf3f8; }
+.reset-formatting-button:disabled { opacity: .5; }
+.sample-data-button { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; margin-top: 16px; padding: 10px; border: 1px solid #678297; border-radius: 5px; background: transparent; color: #d4e5f2; font-size: 11px; }
+.sample-data-button:hover { background: #38556d; }
 .page-detail { display: flex; align-items: center; gap: 8px; margin-top: 17px; color: #7a91a2; font-size: 10px; }
 .page-detail > span { display: flex; flex: 1; justify-content: space-between; }
 .page-detail span span { font-size: 9px; color: #7e909d; }
@@ -222,10 +221,10 @@ h1, h2, h3, h4, p { margin: 0; }
 .tailoring-choice details ul { padding-left: 18px; margin: 7px 0 0; }
 .tailoring-footer .text-button { margin: 0; }
 @media (max-width: 600px) { .tailoring-comparison { grid-template-columns: minmax(0, 1fr); } .tailoring-footer .editor-footer-actions { flex-wrap: wrap; } }
-@media (min-width: 1600px) { .workspace { padding-left: 48px; padding-right: 48px; } .builder-layout { grid-template-columns: minmax(0, 800px) 238px; justify-content: center; gap: 30px; } .resume-page { padding: 48px 44px; } .resume-block { font-size: 12px; } .resume-block-heading h4 { font-size: 13px; } .resume-subtitle { font-size: 12px; } .resume-block-heading > span { font-size: 11px; } .resume-header h2 { font-size: 32px; } .resume-contact { font-size: 10px; } .resume-section h3 { font-size: 11px; } }
-@media (max-width: 1200px) { .app-shell { grid-template-columns: 270px minmax(0, 1fr); } .library { padding-left: 17px; padding-right: 17px; } .workspace { padding: 28px 22px; } .builder-layout { grid-template-columns: minmax(0, 1fr); } .builder-tools { grid-template-columns: 1fr 1fr; align-items: start; } .reset-button { grid-column: 1 / -1; } .resume-page { max-width: 710px; margin: 0 auto; } }
-@media (max-width: 760px) { .app-shell { grid-template-columns: 1fr; } .library { padding: 20px; } .brand { margin-bottom: 25px; } .block-list { grid-template-columns: 1fr 1fr; } .presets { margin-top: 22px; padding-top: 20px; } .preset-list { grid-template-columns: 1fr 1fr; margin-top: 12px; } .workspace { padding: 25px 16px; } .workspace-header { margin-bottom: 23px; } .workspace-header h1 { font-size: 25px; } .paper-surround { padding: 15px; } .resume-page { padding: 28px 25px; min-height: 620px; } .resume-contact { font-size: 8px; } .resume-block-heading h4 { font-size: 10px; } .resume-block-heading > span { font-size: 8px; } .resume-block { font-size: 9px; } .resume-subtitle { font-size: 9px; } .remove-block { opacity: 1; width: 17px; height: 17px; left: -21px; } .canvas-toolbar { padding: 14px; } .block-total { font-size: 9px; } }
-@media (max-width: 420px) { .block-list { grid-template-columns: 1fr; } .preset-list { grid-template-columns: 1fr; } .builder-tools { grid-template-columns: 1fr; } .paper-surround { padding: 9px; } .resume-page { padding-left: 23px; padding-right: 17px; } .resume-block-heading { gap: 6px; } .canvas-caption { font-size: 9px; } }
+@media (min-width: 1600px) { .workspace { padding-left: 48px; padding-right: 48px; } .builder-layout { grid-template-columns: minmax(0, 800px) 238px; justify-content: center; gap: 30px; } .resume-block { font-size: 12px; } .resume-block-heading h4 { font-size: 13px; } .resume-subtitle { font-size: 12px; } .resume-block-heading > span { font-size: 11px; } .resume-header h2 { font-size: 32px; } .resume-contact { font-size: 10px; } .resume-section h3 { font-size: 11px; } }
+@media (max-width: 1200px) { .app-shell { grid-template-columns: 270px minmax(0, 1fr); } .library { padding-left: 17px; padding-right: 17px; } .workspace { padding: 28px 22px; } .builder-layout { grid-template-columns: minmax(0, 1fr); } .builder-tools { grid-template-columns: 1fr 1fr; align-items: start; } .reset-button { grid-column: 1 / -1; } }
+@media (max-width: 760px) { .app-shell { grid-template-columns: 1fr; } .library { padding: 20px; } .brand { margin-bottom: 25px; } .block-list { grid-template-columns: 1fr 1fr; } .presets { margin-top: 22px; padding-top: 20px; } .preset-list { grid-template-columns: 1fr 1fr; margin-top: 12px; } .workspace { padding: 25px 16px; } .workspace-header { margin-bottom: 23px; } .workspace-header h1 { font-size: 25px; } .paper-surround { padding: 15px; } .resume-contact { font-size: 8px; } .resume-block-heading h4 { font-size: 10px; } .resume-block-heading > span { font-size: 8px; } .resume-block { font-size: 9px; } .resume-subtitle { font-size: 9px; } .remove-block { opacity: 1; width: 17px; height: 17px; left: -21px; } .canvas-toolbar { padding: 14px; } .block-total { font-size: 9px; } }
+@media (max-width: 420px) { .block-list { grid-template-columns: 1fr; } .preset-list { grid-template-columns: 1fr; } .builder-tools { grid-template-columns: 1fr; } .paper-surround { padding: 9px; } .resume-block-heading { gap: 6px; } .canvas-caption { font-size: 9px; } }
 @media (max-width: 600px) { .editor-header { padding: 19px 16px; } .editor-fields { padding: 20px 16px; } .editor-footer { padding: 14px 16px; flex-wrap: wrap; } .form-field input, .form-field select, .form-field textarea { font-size: 16px; } }
 @media (max-width: 760px) { .storage-notice { flex-direction: column; align-items: start; gap: 12px; } }
 @media (max-width: 760px) { .resume-drag-handle { left: -22px; width: 17px; } .resume-order-actions { right: -18px; opacity: 1; } .resume-order-actions button { width: 16px; } .canvas-caption { align-items: start; line-height: 1.6; } }

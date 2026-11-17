@@ -1,11 +1,12 @@
-import { blockLabels } from '../types'
-import type { ResumeBlock, ResumePreset, ResumeProfile } from '../types'
-import { createInitialState, markPresetChanges } from './builder'
-import type { BuilderState } from './builder'
-import { copyBlock } from './resumeSnapshots'
+import { blockLabels } from '../types.js'
+import type { ResumeBlock, ResumePreset, ResumeProfile } from '../types.js'
+import { formattingFromCompact, isFormatting } from '../formatting.js'
+import { createInitialState, markPresetChanges } from './builder.js'
+import type { BuilderState } from './builder.js'
+import { copyBlock } from './resumeSnapshots.js'
 
 export const WORKSPACE_STORAGE_KEY = 'resumeblocks.workspace'
-const WORKSPACE_VERSION = 2
+const WORKSPACE_VERSION = 3
 
 export type LoadIssue = 'unreadable' | 'unavailable'
 export type SaveStatus = 'saving' | 'saved' | 'error' | 'blocked'
@@ -54,8 +55,10 @@ interface LegacyPreset {
   blockIds: string[]
 }
 
-type CoreState = Pick<BuilderState, 'blocks' | 'profile' | 'selectedIds' | 'compact' | 'modified'> & Record<string, unknown>
-type LegacyState = CoreState & { presets: LegacyPreset[]; presetId: string }
+type CoreState = Pick<BuilderState, 'blocks' | 'profile' | 'selectedIds' | 'modified'> & Record<string, unknown>
+type LegacyState = CoreState & { compact: boolean; presets: LegacyPreset[]; presetId: string }
+type PreviousPreset = Omit<ResumePreset, 'formatting'> & { compact: boolean }
+type PreviousState = Omit<BuilderState, 'formatting' | 'presets'> & { compact: boolean; presets: PreviousPreset[] }
 
 function isLegacyPreset(value: unknown): value is LegacyPreset {
   return isRecord(value)
@@ -69,7 +72,7 @@ function isCoreState(value: unknown): value is CoreState {
   return isRecord(value)
     && Array.isArray(value.blocks) && value.blocks.every(isBlock)
     && isProfile(value.profile) && isStringArray(value.selectedIds)
-    && typeof value.compact === 'boolean' && typeof value.modified === 'boolean'
+    && typeof value.modified === 'boolean'
     && uniqueBlockIds(value.blocks)
     && new Set(value.selectedIds).size === value.selectedIds.length
 }
@@ -78,17 +81,21 @@ function uniqueBlockIds(blocks: ResumeBlock[]): boolean {
   return new Set(blocks.map((block) => block.id)).size === blocks.length
 }
 
-function isPreset(value: unknown): value is ResumePreset {
+function isSnapshotContent(value: unknown): value is Omit<ResumePreset, 'formatting'> & Record<string, unknown> {
   return isRecord(value) && isNonEmptyString(value.id) && isNonEmptyString(value.name)
     && typeof value.description === 'string' && isProfile(value.profile)
-    && typeof value.compact === 'boolean'
     && Array.isArray(value.blocks) && value.blocks.every(isBlock) && uniqueBlockIds(value.blocks)
 }
 
-function isWorkspace(value: unknown): value is BuilderState {
-  if (!isCoreState(value)
-    || !Array.isArray(value.resumeBlocks) || !value.resumeBlocks.every(isBlock) || !uniqueBlockIds(value.resumeBlocks)
-    || !Array.isArray(value.presets) || !value.presets.every(isPreset)) return false
+function isPreset(value: unknown): value is ResumePreset {
+  return isSnapshotContent(value) && isFormatting(value.formatting)
+}
+
+function isPreviousPreset(value: unknown): value is PreviousPreset {
+  return isSnapshotContent(value) && typeof value.compact === 'boolean'
+}
+
+function validReferences(value: { presets: { id: string }[]; resumeBlocks: ResumeBlock[]; selectedIds: string[]; presetId: unknown }): boolean {
   const presetIds = new Set(value.presets.map((preset) => preset.id))
   const resumeIds = new Set(value.resumeBlocks.map((block) => block.id))
   return presetIds.size === value.presets.length
@@ -97,8 +104,23 @@ function isWorkspace(value: unknown): value is BuilderState {
     && value.selectedIds.every((id) => resumeIds.has(id))
 }
 
-function isLegacyWorkspace(value: unknown): value is LegacyState {
+function isWorkspace(value: unknown): value is BuilderState {
   if (!isCoreState(value)
+    || !isFormatting(value.formatting)
+    || !Array.isArray(value.resumeBlocks) || !value.resumeBlocks.every(isBlock) || !uniqueBlockIds(value.resumeBlocks)
+    || !Array.isArray(value.presets) || !value.presets.every(isPreset)) return false
+  return validReferences({ presets: value.presets, resumeBlocks: value.resumeBlocks, selectedIds: value.selectedIds, presetId: value.presetId })
+}
+
+function isPreviousWorkspace(value: unknown): value is PreviousState {
+  if (!isCoreState(value) || typeof value.compact !== 'boolean'
+    || !Array.isArray(value.resumeBlocks) || !value.resumeBlocks.every(isBlock) || !uniqueBlockIds(value.resumeBlocks)
+    || !Array.isArray(value.presets) || !value.presets.every(isPreviousPreset)) return false
+  return validReferences({ presets: value.presets, resumeBlocks: value.resumeBlocks, selectedIds: value.selectedIds, presetId: value.presetId })
+}
+
+function isLegacyWorkspace(value: unknown): value is LegacyState {
+  if (!isCoreState(value) || typeof value.compact !== 'boolean'
     || !Array.isArray(value.presets) || !value.presets.length || !value.presets.every(isLegacyPreset)
     || !isNonEmptyString(value.presetId)) return false
 
@@ -123,13 +145,41 @@ function migrateWorkspace(legacy: LegacyState): BuilderState {
     resumeBlocks: copySelection(legacy.selectedIds),
     selectedIds: [...legacy.selectedIds],
     profile: { ...legacy.profile },
-    compact: legacy.compact,
+    formatting: formattingFromCompact(legacy.compact),
     presetId: legacy.presetId,
     modified: legacy.modified,
     presets: legacy.presets.map(({ blockIds, ...preset }) => ({
-      ...preset, blocks: copySelection(blockIds), profile: { ...legacy.profile }, compact: false,
+      ...preset, blocks: copySelection(blockIds), profile: { ...legacy.profile }, formatting: formattingFromCompact(false),
     })),
   })
+}
+
+function migratePreviousWorkspace(previous: PreviousState): BuilderState {
+  const { compact, presets, ...state } = previous
+  return markPresetChanges({
+    ...state,
+    formatting: formattingFromCompact(compact),
+    presets: presets.map(({ compact: presetCompact, ...preset }) => ({ ...preset, formatting: formattingFromCompact(presetCompact) })),
+  })
+}
+
+export function decodeWorkspace(raw: string | null): LoadedWorkspace {
+  if (raw === null) return { state: createInitialState(), issue: null }
+  try {
+    const saved: unknown = JSON.parse(raw)
+    if (isRecord(saved) && saved.version === WORKSPACE_VERSION && isWorkspace(saved.state)) {
+      return { state: markPresetChanges(saved.state), issue: null }
+    }
+    if (isRecord(saved) && saved.version === 2 && isPreviousWorkspace(saved.state)) {
+      return { state: migratePreviousWorkspace(saved.state), issue: null }
+    }
+    if (isRecord(saved) && saved.version === 1 && isLegacyWorkspace(saved.state)) {
+      return { state: migrateWorkspace(saved.state), issue: null }
+    }
+  } catch {
+    // Preserve the original saved value. Recovery requires an explicit choice.
+  }
+  return { state: createInitialState(), issue: 'unreadable' }
 }
 
 export function loadWorkspace(): LoadedWorkspace {
@@ -140,20 +190,7 @@ export function loadWorkspace(): LoadedWorkspace {
   } catch {
     return { state: createInitialState(), issue: 'unavailable' }
   }
-  if (raw === null) return { state: createInitialState(), issue: null }
-
-  try {
-    const saved: unknown = JSON.parse(raw)
-    if (isRecord(saved) && saved.version === WORKSPACE_VERSION && isWorkspace(saved.state)) {
-      return { state: markPresetChanges(saved.state), issue: null }
-    }
-    if (isRecord(saved) && saved.version === 1 && isLegacyWorkspace(saved.state)) {
-      return { state: migrateWorkspace(saved.state), issue: null }
-    }
-  } catch {
-    // Preserve the original saved value. Recovery requires an explicit choice.
-  }
-  return { state: createInitialState(), issue: 'unreadable' }
+  return decodeWorkspace(raw)
 }
 
 export function saveWorkspace(state: BuilderState): boolean {

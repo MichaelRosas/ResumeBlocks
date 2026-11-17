@@ -1,4 +1,5 @@
-import type { ResumeBlock, ResumePreset, ResumeProfile, ResumeSnapshot } from '../types'
+import type { ResumeBlock, ResumeFormatting, ResumePreset, ResumeProfile, ResumeSnapshot } from '../types.js'
+import { sameFormatting, standardFormatting } from '../formatting.js'
 
 export function copyBlock(block: ResumeBlock): ResumeBlock {
   return { ...block, bullets: [...block.bullets] }
@@ -8,7 +9,7 @@ export function captureResume(state: {
   resumeBlocks: ResumeBlock[]
   selectedIds: string[]
   profile: ResumeProfile
-  compact: boolean
+  formatting: ResumeFormatting
 }): ResumeSnapshot {
   return {
     blocks: state.selectedIds.flatMap((id) => {
@@ -16,13 +17,13 @@ export function captureResume(state: {
       return block ? [copyBlock(block)] : []
     }),
     profile: { ...state.profile },
-    compact: state.compact,
+    formatting: { ...state.formatting },
   }
 }
 
 export function hasPresetChanges(snapshot: ResumeSnapshot, preset: ResumePreset | undefined): boolean {
-  if (!preset) return snapshot.blocks.length > 0 || snapshot.compact || Object.values(snapshot.profile).some((value) => value.trim().length > 0)
-  if (snapshot.compact !== preset.compact || snapshot.blocks.length !== preset.blocks.length) return true
+  if (!preset) return snapshot.blocks.length > 0 || !sameFormatting(snapshot.formatting, standardFormatting) || Object.values(snapshot.profile).some((value) => value.trim().length > 0)
+  if (!sameFormatting(snapshot.formatting, preset.formatting) || snapshot.blocks.length !== preset.blocks.length) return true
   if ((Object.keys(snapshot.profile) as (keyof ResumeProfile)[]).some((key) => snapshot.profile[key] !== preset.profile[key])) return true
   return snapshot.blocks.some((block, index) => {
     const saved = preset.blocks[index]

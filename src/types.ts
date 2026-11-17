@@ -17,10 +17,19 @@ export interface ResumeProfile {
   website: string
 }
 
+export interface ResumeFormatting {
+  font: 'georgia' | 'times' | 'arial' | 'calibri' | 'cambria' | 'garamond' | 'lato'
+  fontSize: number
+  lineSpacing: number
+  sectionSpacing: number
+  pageMargin: number
+  headerAlignment: 'left' | 'center'
+}
+
 export interface ResumeSnapshot {
   blocks: ResumeBlock[]
   profile: ResumeProfile
-  compact: boolean
+  formatting: ResumeFormatting
 }
 
 export interface ResumePreset extends ResumeSnapshot {

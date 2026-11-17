@@ -1,6 +1,7 @@
 import type { Ref } from 'react'
-import type { ResumeBlock, ResumeProfile } from '../types'
+import type { ResumeBlock, ResumeFormatting, ResumeProfile } from '../types'
 import { blockLabels } from '../types'
+import { resumeStyles } from './resumeStyles'
 
 export function ResumeHeader({ profile }: { profile: ResumeProfile }) {
   const contacts = [profile.email, profile.location, profile.website].filter(Boolean)
@@ -26,14 +27,14 @@ export function ResumeBlockContent({ block }: { block: ResumeBlock }) {
   )
 }
 
-export function ResumeDocument({ profile, blocks, compact, elementRef }: {
+export function ResumeDocument({ profile, blocks, formatting, elementRef }: {
   profile: ResumeProfile
   blocks: ResumeBlock[]
-  compact: boolean
+  formatting: ResumeFormatting
   elementRef?: Ref<HTMLElement>
 }) {
   return (
-    <article ref={elementRef} className={`resume-document ${compact ? 'is-compact' : ''}`} aria-label="Printable resume">
+    <article ref={elementRef} className="resume-document" style={resumeStyles(formatting)} aria-label="Printable resume">
       <ResumeHeader profile={profile} />
       {(['education', 'experience', 'project', 'skills'] as const).map((type) => {
         const sectionBlocks = blocks.filter((block) => block.type === type)

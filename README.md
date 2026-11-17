@@ -14,7 +14,7 @@ Open the local URL printed by Vite (normally http://localhost:5173).
 ```bash
 npm run build      # TypeScript checks and production build
 npm run preview    # Serve the production build locally
-npm test           # Validate tailoring requests and AI responses
+npm test           # Validate tailoring, formatting, and workspace migration
 ```
 
 ## AI tailoring

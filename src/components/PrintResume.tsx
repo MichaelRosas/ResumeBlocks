@@ -1,16 +1,16 @@
 import { useLayoutEffect, useRef } from 'react'
-import type { ResumeBlock, ResumeProfile } from '../types'
+import type { ResumeBlock, ResumeFormatting, ResumeProfile } from '../types'
 import { ResumeDocument } from './ResumeDocument'
 
 export type PageFit = 'measuring' | 'fits' | 'overflow'
 
-// Letter is 11 inches high, with the half-inch top/bottom margins in print.css.
-const PRINTABLE_HEIGHT_PX = 10 * 96
+// The shared document includes its selected page margins during measurement.
+const LETTER_HEIGHT_PX = 11 * 96
 
-export function PrintResume({ profile, blocks, compact, onPageFitChange }: {
+export function PrintResume({ profile, blocks, formatting, onPageFitChange }: {
   profile: ResumeProfile
   blocks: ResumeBlock[]
-  compact: boolean
+  formatting: ResumeFormatting
   onPageFitChange: (fit: PageFit) => void
 }) {
   const documentRef = useRef<HTMLElement>(null)
@@ -20,7 +20,7 @@ export function PrintResume({ profile, blocks, compact, onPageFitChange }: {
     const measure = () => {
       if (!active || !documentRef.current) return
       const height = documentRef.current.getBoundingClientRect().height
-      onPageFitChange(height <= PRINTABLE_HEIGHT_PX ? 'fits' : 'overflow')
+      onPageFitChange(height <= LETTER_HEIGHT_PX + 0.5 ? 'fits' : 'overflow')
     }
     measure()
     const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null
@@ -32,7 +32,10 @@ export function PrintResume({ profile, blocks, compact, onPageFitChange }: {
       observer?.disconnect()
       window.removeEventListener('resize', measure)
     }
-  }, [profile, blocks, compact, onPageFitChange])
+  }, [profile, blocks, formatting, onPageFitChange])
 
-  return <div className="print-output"><ResumeDocument profile={profile} blocks={blocks} compact={compact} elementRef={documentRef} /></div>
+  return <div className="print-output">
+    <style media="print">{`@page { size: letter; margin: ${formatting.pageMargin}in; }`}</style>
+    <ResumeDocument profile={profile} blocks={blocks} formatting={formatting} elementRef={documentRef} />
+  </div>
 }

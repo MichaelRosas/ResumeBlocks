@@ -1,14 +1,16 @@
 import { useDroppable } from '@dnd-kit/react'
 import { useSortable } from '@dnd-kit/react/sortable'
-import type { BlockType, ResumeBlock, ResumeProfile } from '../types'
+import { useCallback, useLayoutEffect, useRef, useState } from 'react'
+import type { BlockType, ResumeBlock, ResumeFormatting, ResumeProfile } from '../types'
 import { blockLabels } from '../types'
 import { Icon } from './Icon'
 import { ResumeBlockContent, ResumeHeader } from './ResumeDocument'
+import { resumeStyles } from './resumeStyles'
 
 interface ResumePreviewProps {
   profile: ResumeProfile
   blocks: ResumeBlock[]
-  compact: boolean
+  formatting: ResumeFormatting
   onRemoveBlock: (id: string) => void
   onMoveBlock: (id: string, index: number) => void
   activeBlock: ResumeBlock | null
@@ -69,7 +71,10 @@ function ResumeSection({ type, blocks, active, onRemoveBlock, onMoveBlock }: {
   )
 }
 
-export function ResumePreview({ profile, blocks, compact, onRemoveBlock, onMoveBlock, activeBlock }: ResumePreviewProps) {
+export function ResumePreview({ profile, blocks, formatting, onRemoveBlock, onMoveBlock, activeBlock }: ResumePreviewProps) {
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const documentRef = useRef<HTMLElement>(null)
+  const [dimensions, setDimensions] = useState({ scale: 1, height: 1056 })
   const { ref, isDropTarget } = useDroppable({
     id: 'resume-page',
     accept: (source) => source.data.kind === 'library-block',
@@ -77,8 +82,30 @@ export function ResumePreview({ profile, blocks, compact, onRemoveBlock, onMoveB
     data: { kind: 'resume-page' },
   })
 
+  const setPageRef = useCallback((element: HTMLElement | null) => {
+    documentRef.current = element
+    ref(element)
+  }, [ref])
+
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current
+    const document = documentRef.current
+    if (!viewport || !document) return
+    const measure = () => {
+      const scale = Math.min(1, viewport.clientWidth / 816)
+      const height = document.offsetHeight * scale
+      setDimensions((previous) => previous.scale === scale && previous.height === height ? previous : { scale, height })
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(viewport)
+    observer.observe(document)
+    return () => observer.disconnect()
+  }, [])
+
   return (
-    <article ref={ref} className={`resume-page ${compact ? 'is-compact' : ''} ${isDropTarget ? 'is-page-drop-target' : ''}`} aria-label="Resume preview">
+    <div ref={viewportRef} className="resume-preview-viewport" style={{ height: dimensions.height }}>
+    <article ref={setPageRef} className={`resume-page resume-document ${isDropTarget ? 'is-page-drop-target' : ''}`} style={{ ...resumeStyles(formatting), transform: `scale(${dimensions.scale})` }} aria-label="Resume preview">
       <ResumeHeader profile={profile} />
       {(['education', 'experience', 'project', 'skills'] as const).map((type) => {
         const sectionBlocks = blocks.filter((block) => block.type === type)
@@ -89,5 +116,6 @@ export function ResumePreview({ profile, blocks, compact, onRemoveBlock, onMoveB
       })}
       {blocks.length === 0 && !activeBlock && <div className="empty-resume"><Icon name="blocks" size={32} /><h3>Start with a building block.</h3><p>Drag a block from your library, or click its card to add it here.</p></div>}
     </article>
+    </div>
   )
 }

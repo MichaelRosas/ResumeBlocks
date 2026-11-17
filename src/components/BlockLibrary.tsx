@@ -16,9 +16,11 @@ interface BlockLibraryProps {
   onEditBlock: (block: ResumeBlock) => void
   draggingFromResume: boolean
   onManagePreset: (preset: ResumePreset) => void
+  onLoadSampleData: () => void
+  canLoadSampleData: boolean
 }
 
-export function BlockLibrary({ blocks, selectedIds, presets, activePresetId, onToggleBlock, onSelectPreset, onCreateBlock, onEditBlock, draggingFromResume, onManagePreset }: BlockLibraryProps) {
+export function BlockLibrary({ blocks, selectedIds, presets, activePresetId, onToggleBlock, onSelectPreset, onCreateBlock, onEditBlock, draggingFromResume, onManagePreset, onLoadSampleData, canLoadSampleData }: BlockLibraryProps) {
   const [search, setSearch] = useState('')
   const { ref, isDropTarget } = useDroppable({
     id: 'block-library',
@@ -62,6 +64,7 @@ export function BlockLibrary({ blocks, selectedIds, presets, activePresetId, onT
           </div>)}
           {presets.length === 0 && <p className="no-results">No saved presets yet. Use Save as new to keep this resume.</p>}
         </div>
+        {canLoadSampleData && <button type="button" className="sample-data-button" onClick={() => { setSearch(''); onLoadSampleData() }}><Icon name="file" size={15} /> Load sample data</button>}
       </section>
     </aside>
   )
